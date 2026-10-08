@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 12
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build applications
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_STELLAR_NETWORK: TESTNET
+          NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+          NEXT_PUBLIC_HORIZON_URL: "https://horizon-testnet.stellar.org"
+          NEXT_PUBLIC_EXPLORER_URL: "https://stellar.expert/explorer/testnet"
