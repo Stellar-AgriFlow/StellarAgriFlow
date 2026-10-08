@@ -13,3 +13,6 @@ Thumbs.db
 coverage
 target
 contracts/**/target
+data
+*.db
+services/**/data
