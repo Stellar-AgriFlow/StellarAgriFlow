@@ -1,0 +1,23 @@
+{
+  "name": "stellar-agriflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Global agricultural financial and trade protocol powered by Stellar",
+  "author": "AgriFlow",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.4",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.7"
+  },
+  "packageManager": "pnpm@12.10.1",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
