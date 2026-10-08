@@ -1,0 +1,19 @@
+{
+  "name": "@agriflow/contracts-client",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@agriflow/stellar": "workspace:*",
+    "@agriflow/types": "workspace:*",
+    "@stellar/stellar-sdk": "^17.2.1"
+  },
+  "devDependencies": {
+    "@agriflow/config": "workspace:*",
+    "typescript": "^5.8.2"
+  }
+}

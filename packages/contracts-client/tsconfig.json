@@ -1,0 +1,11 @@
+{
+  "extends": "@agriflow/config/tsconfig/base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "paths": {
+      "@agriflow/types": ["../types/src/index.ts"],
+      "@agriflow/stellar": ["../stellar/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}
