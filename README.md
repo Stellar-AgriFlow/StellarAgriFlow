@@ -1,166 +1,183 @@
-# AgriFlow
+# AgriFlow: Global Agricultural Financial & Trade Protocol
 
-**Global agricultural payments powered by Stellar.**
+**Decentralized agricultural finance, on-chain Farm Passports, and global trade settlement powered by Stellar & Soroban.**
 
-AgriFlow is a decentralized financial and trade settlement protocol engineered for agriculture. Built on the Stellar Network, AgriFlow bridges farmers, agricultural cooperatives, input suppliers, logistics carriers, and institutional grain buyers through instant, low-cost, non-custodial cross-border payments.
-
----
-
-## Vision
-
-Agricultural commerce represents over $1.5 trillion in annual global trade, yet cross-border agricultural supply chains remain burdened by multi-day banking delays, prohibitive correspondent remittance fees, opaque currency spreads, and lack of verified trade metadata. Smallholders and regional cooperatives frequently experience severe working capital shortages while awaiting wire settlements.
-
-AgriFlow's long-term vision is to construct an end-to-end Web3 financial rail for global agriculture:
-1. **Financial Infrastructure**: Direct producer disbursements, zero-reserve payment corridors, and harvest-cycle liquidity.
-2. **Agricultural Identity (Farm Passport)**: Verifiable credentials representing acreage, crop yields, certifications, and historical fulfillment reliability.
-3. **Smart Escrow & Trade Automation**: Soroban-powered conditional releases triggered upon verified shipping milestones and quality inspections.
-4. **Decentralized Marketplace & Crop Insurance**: Algorithmic parametric weather coverage and forward contracting directly linked to Stellar settlement channels.
+AgriFlow is a production-grade Web3 financial and trade protocol engineered specifically for global agriculture. Built directly on the Stellar Network and Soroban smart contract environment, AgriFlow connects smallholder farmers, agricultural cooperatives, input distributors, logistics providers, and institutional commodity buyers through instant, low-cost cross-border payments, verifiable on-chain agricultural identity (Farm Passports), and real-time blockchain event indexing.
 
 ---
 
-## Current Architecture
+## 🌾 The Global Agricultural Use Case
 
-This release establishes the core payment and financial foundation of the AgriFlow protocol:
+Agricultural trade represents over **$1.5 trillion in annual global commerce**, yet regional agricultural supply chains suffer from severe systemic frictions:
+- **Remittance Delays & High Fees**: Cross-border payments between grain traders, processors, and farmers routinely take 3 to 7 business days, with correspondent banking fees eroding up to 6–10% of smallholder harvest revenue.
+- **Lack of Verifiable Agricultural Identity**: Smallholder farmers frequently cannot access fair working capital, input financing, or insurance because commercial banks lack verifiable records of farm size, historical crop yields, and operational status.
+- **Counterparty & Settlement Risk**: Buyers fear paying upfront before produce arrives, while farmers fear shipping grain without guaranteed payment.
 
-- **Freighter Wallet Integration**: Secure, non-custodial wallet connectivity with account detection and session management.
-- **Real-Time Stellar Testnet XLM Balance**: Live queries to Horizon Testnet nodes with automatic calculation of base reserves and spendable balances.
-- **Agricultural Payment Terminal**: Non-custodial XLM disbursements with agricultural purpose classification (`Farm Input`, `Farmer Payment`, `Produce Purchase`, `Logistics`, `Other`).
-- **Deterministic Transaction Lifecycle**: Granular UI status states (`idle` -> `preparing` -> `awaiting approval` -> `submitting` -> `pending` -> `success` / `failed`).
-- **On-Chain Verification**: Verified ledger indexing and deep links to Stellar.Expert Testnet Explorer.
-- **Enterprise Monorepo Architecture**: Clean separation into `@agriflow/stellar`, `@agriflow/types`, `@agriflow/ui`, `@agriflow/config`, and `@agriflow/web`.
-
----
-
-## Why Stellar?
-
-The Stellar Network provides the optimal distributed ledger architecture for agricultural fintech:
-
-- **Deterministic Sub-Cent Settlement**: Transactions finalize in 3–5 seconds with a fixed base fee of 100 stroops (0.00001 XLM), enabling micro-disbursements to smallholder farmers without fee erosion.
-- **Native Asset & Payment Primitives**: Native support for XLM and fiat-backed anchors (USDC, EURC, local agricultural stablecoins) without smart contract overhead.
-- **On-Chain Transaction Memos**: Up to 28-byte UTF-8 transaction memos allow attaching invoice references and agricultural purpose identifiers directly onto ledger entries.
-- **Future-Ready for Soroban Smart Contracts**: Clean evolution into Soroban WebAssembly contracts for automated agricultural escrow, collateralized trade financing, and multi-signature supply chain release.
+**AgriFlow solves this on Stellar**:
+1. **Instant, Sub-Cent Disbursements**: Settles payments in 3–5 seconds with transaction fees of 0.00001 XLM (100 stroops).
+2. **On-Chain Farm Passports**: Verifiable digital identities registered directly onto Soroban smart contracts, encoding farm geographic region, primary crop, acreage, and expected yield.
+3. **Multi-Wallet Accessibility**: Non-custodial access across premier Stellar ecosystem wallets (Freighter, xBull, Albedo, Hana).
+4. **Real-Time Event Streams**: Immediate indexing of contract events (`FarmRegistered`) directly from Stellar Testnet nodes.
 
 ---
 
-## System Architecture
+## 🏛️ Smart Contract Infrastructure: FarmRegistry
+
+The `FarmRegistry` Soroban smart contract serves as AgriFlow's core agricultural registry, establishing on-chain **Farm Passports** as the foundation for future micro-financing, crop insurance, escrow, and tokenized agricultural collateral.
+
+### Deployed Contract Details (Stellar Testnet)
+
+| Parameter | Value |
+| :--- | :--- |
+| **Network** | Stellar Testnet (`Test SDF Network ; September 2015`) |
+| **Contract Name** | `FarmRegistry` |
+| **Contract ID** | [`CBLQUEAJAI6PYQDEWQR2ICR2FPPP6KQN5ZEGPT4FD7MXCGBJZTOO2CDZ`](https://stellar.expert/explorer/testnet/contract/CBLQUEAJAI6PYQDEWQR2ICR2FPPP6KQN5ZEGPT4FD7MXCGBJZTOO2CDZ) |
+| **Deployment Transaction Hash** | [`016b501af3eb125c4f713e657046606334c3cc441c9acac555d986a3e2433a8e`](https://stellar.expert/explorer/testnet/tx/016b501af3eb125c4f713e657046606334c3cc441c9acac555d986a3e2433a8e) |
+| **Deployer Public Key** | [`GBPHHDV6RE3XHUUUR2K3RNV2C5WLDNNMZC5VFV4DWAMLU5TH27PF55XU`](https://stellar.expert/explorer/testnet/account/GBPHHDV6RE3XHUUUR2K3RNV2C5WLDNNMZC5VFV4DWAMLU5TH27PF55XU) |
+| **WASM Hash** | `e1f93f1d3e1a6603a11631ef842d3d9e843ea35043a53be46c986c71c4c1a9ae` |
+| **Soroban RPC Endpoint** | `https://soroban-testnet.stellar.org` |
+| **Horizon Endpoint** | `https://horizon-testnet.stellar.org` |
+
+---
+
+### Contract Capabilities
+
+The `FarmRegistry` contract (`contracts/farm-registry/src/lib.rs`) implements:
+- **`register_farm(owner, country, region, crop, farm_size_hectares, expected_yield_tons) -> Symbol`**:
+  - Requires cryptographic authorization from the owner address (`owner.require_auth()`).
+  - Validates input boundaries (ensures non-empty strings, size > 0, yield > 0).
+  - Generates a sequential, deterministic Farm ID (`AGRI-000001`, `AGRI-000002`, ...).
+  - Persists the passport struct to Soroban persistent instance storage.
+  - Emits an on-chain `FarmRegistered` event containing `(farm_id, owner, crop, country)`.
+- **`get_farm(farm_id) -> Option<FarmPassport>`**: Retrieves verified farm passport record.
+- **`has_farm(farm_id) -> bool`**: Returns boolean existence of a farm identifier.
+- **`get_farm_count() -> u32`**: Returns total registered farms in the protocol.
+- **`update_farm_status(farm_id, new_status)`**: Authorizes only the farm owner or protocol admin to update status (`Active`, `Suspended`, `Revoked`).
+
+---
+
+## 🔌 Multi-Wallet Integration
+
+AgriFlow provides an extensible multi-wallet architecture implementing the `IWalletAdapter` interface. Users can connect with their preferred Stellar provider:
+
+1. **Freighter Wallet**: Stellar's flagship non-custodial browser extension by SDF.
+2. **xBull Wallet**: Feature-rich multi-platform wallet engineered for Stellar and Soroban.
+3. **Albedo**: Web-based delegated signing without browser extension requirements.
+4. **Hana Wallet**: Multi-chain wallet with integrated Stellar account management.
+5. **Testnet Account Preview**: Direct live network connection allowing instant testnet account exploration.
+
+### Modular Adapter Architecture
 
 ```text
-       +---------------------------------------------+
-       |             Agricultural User               |
-       |  (Farmer, Cooperative, Buyer, Logistics)    |
-       +---------------------------------------------+
-                              |
-                              v
-       +---------------------------------------------+
-       |             AgriFlow Web App                |
-       |  (Next.js 14 App Router / Tailwind CSS)     |
-       +---------------------------------------------+
-               |                             |
-               v                             v
-+-----------------------------+   +-----------------------------+
-|    @agriflow/stellar SDK    |   |     Freighter Wallet        |
-|  - Horizon Client           |   |  - Non-Custodial Key Storage|
-|  - Transaction Builder      |   |  - User Signature Approval  |
-|  - Balance & Reserve Engine |   +-----------------------------+
-+-----------------------------+                  |
-               |                                 |
-               +---------------+                 |
-                               | (Signed XDR)    |
-                               v                 v
-       +---------------------------------------------+
-       |         Stellar Testnet Horizon Node        |
-       |    (https://horizon-testnet.stellar.org)    |
-       +---------------------------------------------+
-                              |
-                              v
-       +---------------------------------------------+
-       |          Stellar Consensus Protocol         |
-       |       Ledger Finality in ~4 Seconds         |
-       +---------------------------------------------+
-                              |
-                              v
-       +---------------------------------------------+
-       |         Stellar.Expert Testnet Explorer     |
-       |        (Public Verification & Receipts)     |
-       +---------------------------------------------+
+              +--------------------------+
+              |     IWalletAdapter       |
+              +--------------------------+
+              | + connect(): string      |
+              | + disconnect(): void     |
+              | + isAvailable(): bool    |
+              | + signTx(xdr): string    |
+              +--------------------------+
+                           ^
+        +------------------+------------------+
+        |                  |                  |
++----------------+ +----------------+ +----------------+
+| FreighterAdapter| |  XBullAdapter   | | AlbedoAdapter  | ...
++----------------+ +----------------+ +----------------+
 ```
 
 ---
 
-## Monorepo Layout
+## 🔄 Transaction Lifecycle Management
+
+Both Soroban contract invocations and native Stellar payments execute through a deterministic state machine:
+
+```text
+[ Idle ] 
+   │
+   ▼
+[ Preparing ] ──> Input validation & parameter encoding
+   │
+   ▼
+[ Simulating ] ──> Soroban RPC pre-flight simulation (gas & auth footprint)
+   │
+   ▼
+[ Awaiting Signature ] ──> Prompting user in Freighter / xBull / Albedo
+   │
+   ├── (Declined) ──> [ Rejected ] (Clean user-friendly error message)
+   │
+   ▼
+[ Submitting ] ──> Transmitting signed XDR to Soroban RPC / Horizon
+   │
+   ▼
+[ Pending ] ──> Polling ledger inclusion (avg 3.5s block time)
+   │
+   ├── (Success) ──> [ Confirmed ] ──> Deep link to Stellar.Expert & live UI reload
+   └── (Error)   ──> [ Failed ] ──> Friendly error parsing without technical stack dumps
+```
+
+---
+
+## 📡 Real-Time Blockchain Event Handling
+
+AgriFlow interacts with the live Soroban RPC event filter to index smart contract events in real time:
+- The contract emits `FarmRegistered` topics: `Symbol::new(&env, "FarmRegistered")`, `farm_id`.
+- The frontend client polls `getEvents` on `https://soroban-testnet.stellar.org` starting from the latest confirmed ledger.
+- Newly discovered events are parsed from Soroban ScVal representations into typed JavaScript event objects and prepended to the **Recent Activity** feed.
+
+---
+
+## 📦 Monorepo Architecture
+
+AgriFlow is structured as an enterprise Turborepo monorepo:
 
 ```text
 StellarAgriFlow/
 ├── apps/
-│   └── web/                   # Next.js 14 Web Application
-│       ├── src/app/           # App Router pages and layouts
-│       ├── src/components/    # Terminal, BalanceCard, PaymentForm, Header
-│       ├── src/context/       # WalletProvider context
-│       ├── src/hooks/         # useStellarWallet, useAccountBalance
-│       └── src/services/      # Freighter wallet adapter abstraction
+│   └── web/                         # Next.js 14 App Router Web Application
+│       ├── src/app/                 # Layout, styling, and dashboard pages
+│       ├── src/components/          # FarmPassportForm, FarmPassportList,
+│       │                            # ActivityFeed, PaymentForm, WalletModal
+│       ├── src/context/             # WalletContext & session provider
+│       └── src/services/            # Multi-wallet adapters (Freighter, xBull, Albedo)
+├── contracts/
+│   └── farm-registry/               # Production Soroban Smart Contract (Rust)
+│       ├── src/
+│       │   ├── lib.rs               # FarmRegistry contract implementation
+│       │   └── test.rs              # Contract unit tests (8 tests covering all branches)
+│       ├── Cargo.toml               # Soroban SDK 22.0.1 dependencies
+│       └── Makefile                 # Build and deploy helpers
 ├── packages/
-│   ├── config/                # Shared ESLint, Tailwind presets, TSConfigs
-│   ├── types/                 # Domain types, WalletState, PaymentReceipt
-│   ├── stellar/               # Horizon queries, TransactionBuilder, Validation
-│   └── ui/                    # Reusable design system (Button, Card, Input)
-├── docs/                      # Architectural documentation & guides
-│   ├── ARCHITECTURE.md        # Technical architecture & design rationale
-│   └── TESTNET_GUIDE.md       # Step-by-step testnet guide & Friendbot setup
-├── tests/                     # Unit & validation test suite (Vitest)
-│   ├── validation.test.ts     # Address, amount, and memo validation tests
-│   ├── errors.test.ts         # Stellar Horizon error parser tests
-│   └── wallet-state.test.ts   # Formatter and Explorer URL tests
+│   ├── config/                      # Shared configs & network constants
+│   ├── contracts-client/            # Soroban RPC client, contract caller, event parser
+│   ├── stellar/                     # Horizon client, balance query, transaction builder
+│   ├── types/                       # Shared domain types (FarmPassport, WalletState, etc.)
+│   └── ui/                          # Design system components (Button, Card, Badge)
+├── tests/                           # 37 Vitest tests across all packages
+│   ├── contracts-client.test.ts     # Client initialization, lifecycle, & status parsing
+│   ├── farm-passport.test.ts        # Farm input validation & data integrity tests
+│   ├── multi-wallet.test.ts         # Wallet discovery & adapter registry tests
+│   ├── validation.test.ts           # Stellar address & payment validation tests
+│   ├── errors.test.ts               # Error translation & user friendly messaging
+│   └── wallet-state.test.ts         # Formatter & Explorer deep link tests
 ├── .github/
-│   └── workflows/ci.yml       # GitHub Actions automated CI workflow
-├── turbo.json                 # Turborepo task pipeline configuration
-├── pnpm-workspace.yaml        # PNPM workspace definition
-├── package.json               # Root workspace manifest
-├── .env.example               # Environment variables template
-└── README.md
+│   └── workflows/ci.yml             # Automated CI: Rust tests + TypeScript tests + Build
+├── package.json                     # Root workspace manifest
+├── pnpm-workspace.yaml              # PNPM workspace definition
+└── turbo.json                       # Turborepo task orchestrator
 ```
 
 ---
 
-## Implemented Features
-
-| Feature | Description | Status |
-| :--- | :--- | :--- |
-| **Freighter Connection** | Connects to Freighter browser extension, retrieves public key | ✅ Production Ready |
-| **Wallet Disconnect** | Flushes active session and resets application state | ✅ Production Ready |
-| **Testnet Horizon Client** | Connects to `https://horizon-testnet.stellar.org` | ✅ Production Ready |
-| **XLM Balance Query** | Live native balance retrieval with minimum reserve subtraction | ✅ Production Ready |
-| **Payment Form** | Validated address, amount, purpose selector, optional memo | ✅ Production Ready |
-| **Address Validation** | Cryptographic Ed25519 public key validation via StrKey | ✅ Production Ready |
-| **Reserve Calculation** | Dynamic reserve formula `(2 + subentries) * 0.5 XLM` | ✅ Production Ready |
-| **Unfunded Account Handling** | Automatic detection of unfunded accounts + Friendbot activator | ✅ Production Ready |
-| **Transaction Builder** | Constructs Stellar payment / createAccount operations with fee bounds | ✅ Production Ready |
-| **User Rejection Handling** | Graceful error translation when user declines signing | ✅ Production Ready |
-| **Receipt Modal** | Displays confirmed transaction hash with direct link to Stellar.Expert | ✅ Production Ready |
-| **Automated Testing** | 23 comprehensive tests in Vitest covering all core logic | ✅ 100% Passing |
-
----
-
-## Tech Stack
-
-- **Framework**: [Next.js 14](https://nextjs.org/) (App Router, React 18, TypeScript)
-- **Monorepo Engine**: [Turborepo](https://turbo.build/) & [pnpm](https://pnpm.io/)
-- **Blockchain SDK**: [`@stellar/stellar-sdk`](https://www.npmjs.com/package/@stellar/stellar-sdk) (v17.2.1)
-- **Wallet Extension**: [`@stellar/freighter-api`](https://www.npmjs.com/package/@stellar/freighter-api) (v6.0.1)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) with custom agricultural palette
-- **Testing**: [Vitest](https://vitest.dev/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-
----
-
-## Getting Started
+## 🚀 Quick Start Guide
 
 ### Prerequisites
-
-- **Node.js**: `v20.x` or `v22.x` (or later)
+- **Node.js**: `v20.x` or `v22.x` (or newer)
 - **pnpm**: `v10.x` or `v12.x` (`npm install -g pnpm`)
-- **Freighter Wallet Extension**: Install from [freighter.app](https://www.freighter.app/)
+- **Rust & Cargo** (for contract development): `rustup target add wasm32-unknown-unknown`
+- **Stellar CLI**: `v22+` (`cargo install --locked stellar-cli`)
+- **Stellar Wallet**: [Freighter](https://www.freighter.app/) or [xBull](https://xbull.app/)
 
-### 1. Clone & Install
+### 1. Installation
 
 ```bash
 git clone https://github.com/Stellar-AgriFlow/StellarAgriFlow.git
@@ -168,90 +185,124 @@ cd StellarAgriFlow
 pnpm install
 ```
 
-### 2. Configure Environment
+### 2. Environment Configuration
 
-Copy `.env.example` to `apps/web/.env.local`:
+Copy `.env.example` into `apps/web/.env.local`:
 
 ```bash
 cp .env.example apps/web/.env.local
 ```
 
-Default configuration:
+Default configuration points to the live deployed contract:
 ```env
 NEXT_PUBLIC_STELLAR_NETWORK=TESTNET
 NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
 NEXT_PUBLIC_HORIZON_URL="https://horizon-testnet.stellar.org"
+NEXT_PUBLIC_SOROBAN_RPC_URL="https://soroban-testnet.stellar.org"
 NEXT_PUBLIC_EXPLORER_URL="https://stellar.expert/explorer/testnet"
+NEXT_PUBLIC_FARM_REGISTRY_CONTRACT_ID="CBLQUEAJAI6PYQDEWQR2ICR2FPPP6KQN5ZEGPT4FD7MXCGBJZTOO2CDZ"
 ```
 
-### 3. Run Locally
+### 3. Running the Development Server
 
 ```bash
-# Run web application in development mode
 pnpm dev
+```
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-# Or run tests
-pnpm test
+---
 
-# Or build production bundles
-pnpm build
+## 🧪 Testing Suite
+
+### 1. Smart Contract Tests (Rust)
+
+Run the contract test suite covering registration, unique identifiers, unauthorized status modification, existence verification, and event emission:
+
+```bash
+cd contracts/farm-registry
+cargo test
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+### 2. Frontend & Client Tests (TypeScript / Vitest)
+
+Execute all 37 unit and integration tests across all monorepo packages:
+
+```bash
+pnpm test
+```
+
+Test coverage includes:
+- **`tests/contracts-client.test.ts`**: Client initialization, contract ID validation, transaction lifecycle states, status mapping.
+- **`tests/farm-passport.test.ts`**: Agricultural field validation (country, region, crop, acreage, expected yield), extreme bound checks.
+- **`tests/multi-wallet.test.ts`**: Wallet registry completeness, adapter instantiation, browser availability detection.
+- **`tests/validation.test.ts`**: Stellar Ed25519 public key StrKey validation, payment amounts, invoice memos.
+- **`tests/errors.test.ts`**: User signature denial, missing extensions, Horizon `op_underfunded`, 404 account missing.
+- **`tests/wallet-state.test.ts`**: Address truncator, Stellar.Expert explorer receipt link generator.
 
 ---
 
-## Testnet Setup & Making a Test Transaction
+## 🛠️ Reproducing Contract Build & Deployment
 
-### 1. Configure Freighter for Testnet
-1. Open your Freighter browser extension.
-2. Click the gear icon (Settings) in the top right.
-3. Switch the network from **Public** to **Testnet**.
+To build and deploy the contract yourself to Stellar Testnet:
 
-### 2. Fund Your Testnet Wallet
-1. Copy your public key from Freighter (starts with `G...`).
-2. Visit the [Stellar Laboratory Friendbot](https://laboratory.stellar.org/#account-creator?network=test) or use the built-in **Fund with Friendbot** button inside the AgriFlow terminal.
-3. Your wallet will immediately receive **10,000 Testnet XLM**.
+```bash
+# 1. Build the WebAssembly binary
+cd contracts/farm-registry
+cargo build --target wasm32-unknown-unknown --release
 
-### 3. Send an Agricultural Payment
-1. Click **Connect Wallet** on AgriFlow.
-2. Your live XLM balance and available spendable balance will appear.
-3. In the **Send Agricultural Payment** card:
-   - Enter a recipient address (or click **Use Demo Testnet Address** to use `GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN`).
-   - Enter an amount in XLM (e.g., `25`).
-   - Select an agricultural purpose (e.g., `Produce Purchase`).
-   - (Optional) Enter an invoice memo (e.g., `INV-2026-COFFEE`).
-4. Click **Confirm & Send Payment**.
-5. Approve the transaction in your Freighter pop-up window.
-6. The terminal will track the transaction through submission and ledger finality (~4 seconds).
-7. Review your payment receipt and click **View on Stellar Explorer** to verify the transaction on the public ledger.
+# 2. Configure Stellar CLI network and identity
+stellar network add --global testnet \
+  --rpc-url https://soroban-testnet.stellar.org \
+  --network-passphrase "Test SDF Network ; September 2015"
+
+stellar keys generate --global deployer --network testnet
+stellar keys fund deployer --network testnet
+
+# 3. Deploy contract binary to Stellar Testnet
+stellar contract deploy \
+  --wasm target/wasm32-unknown-unknown/release/farm_registry.wasm \
+  --source deployer \
+  --network testnet
+```
+
+The output will display your new contract ID (`C...`). Update `NEXT_PUBLIC_FARM_REGISTRY_CONTRACT_ID` in `apps/web/.env.local`.
 
 ---
 
-## Roadmap
+## 🔒 Security Best Practices
+
+1. **Non-Custodial Design**: Private keys, seed phrases, and passwords are never requested, stored, or transmitted by AgriFlow. All signing occurs exclusively inside user wallets.
+2. **On-Chain Cryptographic Authorization**: The `FarmRegistry` contract enforces `owner.require_auth()` for registration and updates, preventing unauthorized entity spoofing.
+3. **No Raw Stack Dumps**: Low-level Horizon/Soroban simulation errors and RPC faults are parsed into human-actionable guidelines.
+4. **Boundary Validation**: Contract logic independently verifies acreage, yield, and input strings before state commitment.
+
+---
+
+## 🗺️ Future Roadmap
 
 ```text
-Phase 1 (Current Foundation)
-└── Non-custodial Stellar wallet integration
-└── Real-time Horizon XLM balance & reserve management
-└── Agricultural payment terminal with on-chain metadata
-└── Explorer verification & automated validation
+Phase 1: Payment Settlement (Complete)
+└── Non-custodial XLM disbursements with agricultural purpose classification
+└── Real-time Horizon balance and reserve calculation
 
-Phase 2 (Trade Contracts & Identity)
-└── Soroban Smart Contracts for agricultural escrow
-└── Farm Passport: Verifiable credentials for agricultural producers
-└── Multi-wallet integration via StellarWalletsKit
-└── Real-time contract event indexer
+Phase 2: Farm Identity & Registry (Current Release)
+└── FarmRegistry Soroban smart contract on Stellar Testnet
+└── Multi-wallet integration (Freighter, xBull, Albedo, Hana)
+└── Client transaction lifecycle & real-time event indexing
 
-Phase 3 (Global Agricultural Finance & Liquidity)
-└── Collateralized harvest financing & forward contracts
-└── Decentralized agricultural marketplace with automated settlement
-└── Parametric crop insurance pools
-└── Cross-border multi-currency anchor settlement (USDC / EURC)
+Phase 3: Agricultural Escrow & Trade Automation (Next)
+└── Conditional milestone release smart contracts for crop freight
+└── Quality inspection oracle verification
+└── Multi-currency settlement (USDC / EURC agricultural rails)
+
+Phase 4: Collateralized Financing & Insurance
+└── Tokenized harvest receipts as borrowing collateral
+└── Parametric drought & rainfall insurance pools on Soroban
+└── Cross-border cooperative liquidity pools
 ```
 
 ---
 
-## License
+## 📄 License
 
 This project is licensed under the Apache 2.0 License.
