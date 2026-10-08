@@ -7,7 +7,29 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  contracts-test:
+    name: Soroban Smart Contract Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts/farm-registry
+
+      - name: Run FarmRegistry contract tests
+        working-directory: contracts/farm-registry
+        run: cargo test --verbose
+
+  frontend-build-and-test:
+    name: Frontend Build & Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -27,13 +49,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile=false
 
-      - name: Run tests
+      - name: Run frontend & unit tests
         run: pnpm test
 
-      - name: Build applications
+      - name: Build applications and packages
         run: pnpm build
         env:
           NEXT_PUBLIC_STELLAR_NETWORK: TESTNET
           NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
           NEXT_PUBLIC_HORIZON_URL: "https://horizon-testnet.stellar.org"
+          NEXT_PUBLIC_SOROBAN_RPC_URL: "https://soroban-testnet.stellar.org"
           NEXT_PUBLIC_EXPLORER_URL: "https://stellar.expert/explorer/testnet"
+          NEXT_PUBLIC_FARM_REGISTRY_CONTRACT_ID: "CBLQUEAJAI6PYQDEWQR2ICR2FPPP6KQN5ZEGPT4FD7MXCGBJZTOO2CDZ"
