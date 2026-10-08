@@ -1,8 +1,16 @@
 # AgriFlow: Global Agricultural Financial & Trade Protocol
 
-**Production-grade decentralized agricultural finance, on-chain Farm Passports, marketplace trade, non-custodial escrow, and cross-contract reputation powered by Stellar and Soroban.**
+[![Live Application](https://img.shields.io/badge/Live%20App-stellar--agriflow.vercel.app-00DC82?style=for-the-badge&logo=vercel&logoColor=white)](https://stellar-agriflow.vercel.app)
+[![Network](https://img.shields.io/badge/Stellar-Testnet-blue?style=for-the-badge&logo=stellar&logoColor=white)](https://stellar.expert/explorer/testnet)
+[![Soroban Smart Contracts](https://img.shields.io/badge/Soroban-Rust%20Contracts-orange?style=for-the-badge&logo=rust&logoColor=white)](https://soroban.stellar.org)
+[![Tests Passing](https://img.shields.io/badge/Tests-54%20Passing-brightgreen?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/Stellar-AgriFlow/StellarAgriFlow/actions)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge)](./LICENSE)
 
-AgriFlow is an institutional-grade Web3 protocol engineered to revolutionize global agricultural commerce. Built directly on the Stellar Network and Soroban smart contract runtime, AgriFlow connects smallholder farmers, regional cooperatives, input vendors, logistics carriers, and commodity buyers through instant, low-cost cross-border payments, verifiable on-chain agricultural identity (Farm Passports), collateralized forward harvest financing, automated escrow settlements, and tamper-proof reputation indexing.
+**Institutional-grade decentralized agricultural finance, on-chain Farm Passports, marketplace trade, non-custodial escrow, and cross-contract reputation powered by Stellar and Soroban.**
+
+AgriFlow is a Web3 financial and trade protocol engineered to modernize global agricultural commerce. Built directly on the Stellar Network and Soroban smart contract runtime, AgriFlow connects smallholder farmers, regional cooperatives, input vendors, logistics carriers, and commodity buyers through instant, low-cost cross-border payments, verifiable on-chain agricultural identity (Farm Passports), collateralized forward harvest financing, automated escrow settlements, and tamper-proof reputation indexing.
+
+🌐 **Live Production Application:** [https://stellar-agriflow.vercel.app](https://stellar-agriflow.vercel.app)
 
 ---
 
@@ -26,15 +34,15 @@ Agricultural commerce represents over **$1.5 trillion in annual global trade**, 
 
 ## 🏛️ Deployed Smart Contracts Architecture (Stellar Testnet)
 
-AgriFlow operates a modular, multi-contract architecture where specialized contracts communicate via native Soroban cross-contract invocations.
+AgriFlow operates a modular, multi-contract architecture where specialized contracts communicate via native Soroban cross-contract invocations. All five contracts are live, fully instantiated, and verifiable on the Stellar Testnet:
 
-| Contract | Network | Contract ID | Deployment Tx Hash | Explorer Link |
+| Contract | Network | Contract ID | Deployment Tx Hash | Explorer & Verification Links |
 | :--- | :--- | :--- | :--- | :--- |
-| **`FarmRegistry`** | Testnet | `CBLQUEAJAI6PYQDEWQR2ICR2FPPP6KQN5ZEGPT4FD7MXCGBJZTOO2CDZ` | `016b501af3eb125c4f713e657046606334c3cc441c9acac555d986a3e2433a8e` | [View on Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CBLQUEAJAI6PYQDEWQR2ICR2FPPP6KQN5ZEGPT4FD7MXCGBJZTOO2CDZ) |
-| **`AgriculturalReputation`** | Testnet | `CBUME23GQVEJ5SWDA7EOTUFOGXSSC2RO5HFTUMXQDQOPWTGOM2YWU65S` | `a392162ebadc0fb44fa013b8d5034b0b2bc590ce71a5e21078767862266f07fc` | [View on Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CBUME23GQVEJ5SWDA7EOTUFOGXSSC2RO5HFTUMXQDQOPWTGOM2YWU65S) |
-| **`AgriculturalEscrow`** | Testnet | `CD72TIQ3LQKJJKQX44UJVF6CT2V6FLELKXQPZ6TZ66KUYLLGUHQI7RHD` | `e8d168e72d248c8a793cecb4f70e58bb3a032967116017a53b8e76f839258abb` | [View on Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CD72TIQ3LQKJJKQX44UJVF6CT2V6FLELKXQPZ6TZ66KUYLLGUHQI7RHD) |
-| **`AgriculturalMarketplace`** | Testnet | `CD4RQ6D36NCTEXG22BPI3VBHZYJMES7CVS5Z7YLP4TJM3BI6IMHTVPF5` | `b0f6a6ad47dcb8e862dffde700a24b2e188c173d193ad3ecd16af6cda453ad82` | [View on Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CD4RQ6D36NCTEXG22BPI3VBHZYJMES7CVS5Z7YLP4TJM3BI6IMHTVPF5) |
-| **`AgriculturalFinance`** | Testnet | `CBRTDNZPZYCKUO7U76DEWV32KAYXZ45JPL2FUPCJIKQIA47BWXZFMBCL` | `575daf41507b5dab8c4905cf34db0c8e00eb048367990a7be76e64b4bd4e5e80` | [View on Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CBRTDNZPZYCKUO7U76DEWV32KAYXZ45JPL2FUPCJIKQIA47BWXZFMBCL) |
+| **`FarmRegistry`** | Testnet | `CBLQUEAJAI6PYQDEWQR2ICR2FPPP6KQN5ZEGPT4FD7MXCGBJZTOO2CDZ` | `016b501af3eb125c4f713e657046606334c3cc441c9acac555d986a3e2433a8e` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CBLQUEAJAI6PYQDEWQR2ICR2FPPP6KQN5ZEGPT4FD7MXCGBJZTOO2CDZ) · [Stellar Lab](https://lab.stellar.org/#explorer?network=testnet&resource=contracts&endpoint=get&values=eyJuYW1lIjoiQ0JMUVVFQUpBSTRQWVFERVdRUjJJQ1IyRlBQUDRLUU41WkVHUFQ0RkQ3TVhDR0JKWlRPTzJDRFoifQ==) |
+| **`AgriculturalReputation`** | Testnet | `CBUME23GQVEJ5SWDA7EOTUFOGXSSC2RO5HFTUMXQDQOPWTGOM2YWU65S` | `a392162ebadc0fb44fa013b8d5034b0b2bc590ce71a5e21078767862266f07fc` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CBUME23GQVEJ5SWDA7EOTUFOGXSSC2RO5HFTUMXQDQOPWTGOM2YWU65S) · [Stellar Lab](https://lab.stellar.org/#explorer?network=testnet&resource=contracts&endpoint=get&values=eyJuYW1lIjoiQ0JVTUUyM0dRVkVKNVNXREE3RU9UVUZPR1hTU0MyUk81SEZUVU1YUUdRT1BXVENPTTJZV1U2NVMifQ==) |
+| **`AgriculturalEscrow`** | Testnet | `CD72TIQ3LQKJJKQX44UJVF6CT2V6FLELKXQPZ6TZ66KUYLLGUHQI7RHD` | `e8d168e72d248c8a793cecb4f70e58bb3a032967116017a53b8e76f839258abb` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CD72TIQ3LQKJJKQX44UJVF6CT2V6FLELKXQPZ6TZ66KUYLLGUHQI7RHD) · [Stellar Lab](https://lab.stellar.org/#explorer?network=testnet&resource=contracts&endpoint=get&values=eyJuYW1lIjoiQ0Q3MlRJUTNMUStKSktRWDQ0VUpWRjZDVDI2RkxFTEtYUVBaNlRaNjZLVVlMTEdVSFFJN1JIRCJ9) |
+| **`AgriculturalMarketplace`** | Testnet | `CD4RQ6D36NCTEXG22BPI3VBHZYJMES7CVS5Z7YLP4TJM3BI6IMHTVPF5` | `b0f6a6ad47dcb8e862dffde700a24b2e188c173d193ad3ecd16af6cda453ad82` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CD4RQ6D36NCTEXG22BPI3VBHZYJMES7CVS5Z7YLP4TJM3BI6IMHTVPF5) · [Stellar Lab](https://lab.stellar.org/#explorer?network=testnet&resource=contracts&endpoint=get&values=eyJuYW1lIjoiQ0Q0UlE2RDNKTkNURVdHMjJCUEkzdkJIRlpZSk1FUzdDVlM1WjdZTFBRVEpNM0JJNklNSFRWUEY1In0=) |
+| **`AgriculturalFinance`** | Testnet | `CBRTDNZPZYCKUO7U76DEWV32KAYXZ45JPL2FUPCJIKQIA47BWXZFMBCL` | `575daf41507b5dab8c4905cf34db0c8e00eb048367990a7be76e64b4bd4e5e80` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CBRTDNZPZYCKUO7U76DEWV32KAYXZ45JPL2FUPCJIKQIA47BWXZFMBCL) · [Stellar Lab](https://lab.stellar.org/#explorer?network=testnet&resource=contracts&endpoint=get&values=eyJuYW1lIjoiQ0JSVEROSlBaWUNLVU83VTY2REVXVjMyS0FZWFo0NUpQTDJGVVBDSklLUUlBNDdCV1haRk1CQ0wifQ==) |
 
 Deployer Account: [`GBPHHDV6RE3XHUUUR2K3RNV2C5WLDNNMZC5VFV4DWAMLU5TH27PF55XU`](https://stellar.expert/explorer/testnet/account/GBPHHDV6RE3XHUUUR2K3RNV2C5WLDNNMZC5VFV4DWAMLU5TH27PF55XU)
 
@@ -80,7 +88,7 @@ Deployer Account: [`GBPHHDV6RE3XHUUUR2K3RNV2C5WLDNNMZC5VFV4DWAMLU5TH27PF55XU`](h
 ## 🔌 Multi-Wallet Support
 
 AgriFlow supports all premier Stellar ecosystem wallets:
-- **Freighter**: Official SDF browser extension wallet.
+- **Freighter**: Official SDF browser extension wallet with native Soroban transaction signing.
 - **xBull**: Multi-platform wallet for Stellar & Soroban.
 - **Albedo**: Web-based delegated signing without extension installation.
 - **Hana**: Privacy-focused multi-chain wallet with Stellar support.
@@ -146,6 +154,10 @@ StellarAgriFlow/
 │   └── wallet-state.test.ts         # Address formatting & Explorer link tests
 ├── .github/
 │   └── workflows/ci.yml             # Matrix CI workflow for all 5 contracts & web app
+├── CODE_OF_CONDUCT.md               # Community guidelines and code of conduct
+├── CONTRIBUTING.md                  # Development and contribution guide
+├── LICENSE                          # Apache 2.0 open-source license
+├── SECURITY.md                      # Vulnerability reporting and security policy
 ├── package.json                     # Root manifest
 ├── pnpm-workspace.yaml              # PNPM workspace definition
 └── turbo.json                       # Turborepo task pipeline
@@ -168,7 +180,7 @@ cargo test --manifest-path contracts/agricultural-finance/Cargo.toml
 ```bash
 pnpm test
 ```
-All 54 tests across 12 test suites execute and pass.
+All 54 tests across 12 test suites execute and pass cleanly.
 
 ---
 
@@ -205,10 +217,19 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
    - Only authorized contracts (Escrow, Finance) can award reputation points.
    - Farmers cannot fund their own financing requests.
    - Sellers cannot purchase their own marketplace listings.
-3. **No Technical Stack Dumps**: Errors are safely parsed into clean, actionable notifications.
+3. **Graceful Error Handling**: All network and ledger exceptions are securely caught, formatted into user-friendly notifications, and never expose low-level stack traces.
+4. **Security Policy**: For vulnerability reporting, refer to our [Security Policy](./SECURITY.md).
+
+---
+
+## 📜 Community & Governance
+
+- [Code of Conduct](./CODE_OF_CONDUCT.md)
+- [Contributing Guidelines](./CONTRIBUTING.md)
+- [Security Policy](./SECURITY.md)
 
 ---
 
 ## 📄 License
 
-This project is licensed under the Apache 2.0 License.
+This project is licensed under the [Apache 2.0 License](./LICENSE).

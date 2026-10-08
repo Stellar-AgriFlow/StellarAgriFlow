@@ -1,11 +1,13 @@
+import os from 'os';
+import path from 'path';
 import { describe, it, expect } from 'vitest';
 import { IndexerDatabase } from '../services/event-indexer/src/database';
 import { IndexedProtocolEvent } from '../packages/types/src/indexer';
 
 describe('Event Indexer Database & Query Engine', () => {
   it('inserts events and prevents duplicate processing', () => {
-    // In-memory test instance with mock temporary path
-    const db = new IndexerDatabase();
+    const testPath = path.join(os.tmpdir(), `test-indexer-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+    const db = new IndexerDatabase(testPath);
 
     const event1: IndexedProtocolEvent = {
       id: 'event-001',
@@ -27,7 +29,8 @@ describe('Event Indexer Database & Query Engine', () => {
   });
 
   it('filters indexed events by wallet, farmId, and eventType', () => {
-    const db = new IndexerDatabase();
+    const testPath = path.join(os.tmpdir(), `test-indexer-filter-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+    const db = new IndexerDatabase(testPath);
 
     const event1: IndexedProtocolEvent = {
       id: 'event-trade-01',

@@ -16,3 +16,5 @@ contracts/**/target
 data
 *.db
 services/**/data
+
+.vercel

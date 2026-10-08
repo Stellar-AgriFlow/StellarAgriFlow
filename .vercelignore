@@ -1,0 +1,10 @@
+node_modules
+.pnpm-store
+.next
+.turbo
+contracts/**/target
+target
+.git
+dist
+data
+*.log
