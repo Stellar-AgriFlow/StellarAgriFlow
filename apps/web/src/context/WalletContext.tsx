@@ -1,14 +1,22 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { WalletState, IWalletAdapter } from '@agriflow/types';
+import { WalletState, IWalletAdapter, WalletProvider as WalletProviderType, WalletOption } from '@agriflow/types';
 import { shortenAddress } from '@agriflow/stellar';
-import { defaultWalletAdapter, previewWalletAdapter } from '../services/walletAdapter';
+import {
+  defaultWalletAdapter,
+  getAdapterForProvider,
+  SUPPORTED_WALLETS,
+} from '../services/walletAdapter';
 
 interface WalletContextValue {
   state: WalletState;
   adapter: IWalletAdapter;
-  connect: (type?: 'freighter' | 'testnet_demo') => Promise<void>;
+  availableWallets: WalletOption[];
+  isWalletModalOpen: boolean;
+  openWalletModal: () => void;
+  closeWalletModal: () => void;
+  connect: (provider?: WalletProviderType) => Promise<void>;
   disconnect: () => Promise<void>;
   signTransaction: (xdr: string, opts?: { networkPassphrase?: string }) => Promise<string>;
   clearError: () => void;
@@ -17,81 +25,98 @@ interface WalletContextValue {
 const WalletContext = createContext<WalletContextValue | null>(null);
 
 const STORAGE_KEY = 'agriflow_wallet_connected';
-const ADAPTER_KEY = 'agriflow_wallet_adapter';
+const PROVIDER_KEY = 'agriflow_wallet_provider';
 
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [adapter, setAdapter] = useState<IWalletAdapter>(defaultWalletAdapter);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [availableWallets, setAvailableWallets] = useState<WalletOption[]>(SUPPORTED_WALLETS);
+
   const [state, setState] = useState<WalletState>({
     status: 'checking',
     account: null,
     error: null,
     isAvailable: false,
+    selectedProvider: 'FREIGHTER',
   });
 
-  // Check wallet extension availability on mount
+  // Check extensions on mount
   useEffect(() => {
     let mounted = true;
 
-    async function checkAvailability() {
-      try {
-        const storedAdapter = typeof window !== 'undefined' ? localStorage.getItem(ADAPTER_KEY) : null;
-        const currentAdapter = storedAdapter === 'testnet_demo' ? previewWalletAdapter : defaultWalletAdapter;
-        setAdapter(currentAdapter);
-
-        const available = await currentAdapter.isAvailable();
-        if (!mounted) return;
-
-        const wasConnected = typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEY) === 'true';
-
-        if (available && wasConnected) {
+    async function checkWallets() {
+      const updated = await Promise.all(
+        SUPPORTED_WALLETS.map(async (w) => {
           try {
-            const pubKey = await currentAdapter.getPublicKey();
-            if (pubKey && mounted) {
-              setState({
-                status: 'connected',
-                account: {
-                  address: pubKey,
-                  shortAddress: shortenAddress(pubKey),
-                },
-                error: null,
-                isAvailable: true,
-              });
-              return;
-            }
+            const ad = getAdapterForProvider(w.id);
+            const isAvail = await ad.isAvailable();
+            return { ...w, isAvailable: isAvail };
           } catch {
-            // Fallback to disconnected
+            return { ...w, isAvailable: false };
           }
-        }
+        })
+      );
 
+      if (mounted) {
+        setAvailableWallets(updated);
+      }
+
+      // Check auto-reconnect
+      const wasConnected = typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEY) === 'true';
+      const storedProvider = (typeof window !== 'undefined' ? localStorage.getItem(PROVIDER_KEY) : 'FREIGHTER') as WalletProviderType;
+      const initialAdapter = getAdapterForProvider(storedProvider || 'FREIGHTER');
+      setAdapter(initialAdapter);
+
+      if (wasConnected && initialAdapter) {
+        try {
+          const pubKey = await initialAdapter.getPublicKey();
+          if (pubKey && mounted) {
+            setState({
+              status: 'connected',
+              account: {
+                address: pubKey,
+                shortAddress: shortenAddress(pubKey),
+              },
+              error: null,
+              isAvailable: true,
+              selectedProvider: storedProvider,
+            });
+            return;
+          }
+        } catch {
+          // Fall through
+        }
+      }
+
+      if (mounted) {
         setState({
           status: 'disconnected',
           account: null,
           error: null,
-          isAvailable: available,
-        });
-      } catch (err: any) {
-        if (!mounted) return;
-        setState({
-          status: 'disconnected',
-          account: null,
-          error: null,
-          isAvailable: false,
+          isAvailable: true,
+          selectedProvider: storedProvider,
         });
       }
     }
 
-    checkAvailability();
+    checkWallets();
 
     return () => {
       mounted = false;
     };
   }, []);
 
-  const connect = useCallback(async (type?: 'freighter' | 'testnet_demo') => {
-    const selectedAdapter = type === 'testnet_demo' ? previewWalletAdapter : defaultWalletAdapter;
+  const connect = useCallback(async (provider: WalletProviderType = 'FREIGHTER') => {
+    const selectedAdapter = getAdapterForProvider(provider);
     setAdapter(selectedAdapter);
 
-    setState((prev) => ({ ...prev, status: 'connecting', error: null }));
+    setState((prev) => ({
+      ...prev,
+      status: 'connecting',
+      error: null,
+      selectedProvider: provider,
+    }));
+
     try {
       const address = await selectedAdapter.connect();
       if (!address) {
@@ -100,7 +125,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (typeof window !== 'undefined') {
         localStorage.setItem(STORAGE_KEY, 'true');
-        localStorage.setItem(ADAPTER_KEY, type || 'freighter');
+        localStorage.setItem(PROVIDER_KEY, provider);
       }
 
       setState({
@@ -111,10 +136,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         },
         error: null,
         isAvailable: true,
+        selectedProvider: provider,
       });
+
+      setIsWalletModalOpen(false);
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to connect wallet';
-      const isNotInstalled = errorMsg.includes('not detected');
+      const isNotInstalled = errorMsg.includes('not detected') || errorMsg.includes('install');
 
       setState((prev) => ({
         ...prev,
@@ -131,7 +159,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       if (typeof window !== 'undefined') {
         localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(ADAPTER_KEY);
+        localStorage.removeItem(PROVIDER_KEY);
       }
       setState((prev) => ({
         ...prev,
@@ -158,6 +186,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       value={{
         state,
         adapter,
+        availableWallets,
+        isWalletModalOpen,
+        openWalletModal: () => setIsWalletModalOpen(true),
+        closeWalletModal: () => setIsWalletModalOpen(false),
         connect,
         disconnect,
         signTransaction,
