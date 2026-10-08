@@ -1,4 +1,18 @@
-export type WalletProvider = 'FREIGHTER';
+export type WalletProvider =
+  | 'FREIGHTER'
+  | 'XBULL'
+  | 'ALBEDO'
+  | 'HANA'
+  | 'LOBSTR'
+  | 'TESTNET_DEMO';
+
+export interface WalletOption {
+  id: WalletProvider;
+  name: string;
+  description: string;
+  isAvailable: boolean;
+  downloadUrl: string;
+}
 
 export interface WalletAccount {
   address: string;
@@ -18,6 +32,7 @@ export interface WalletState {
   account: WalletAccount | null;
   error: string | null;
   isAvailable: boolean;
+  selectedProvider?: WalletProvider;
 }
 
 export interface IWalletAdapter {
