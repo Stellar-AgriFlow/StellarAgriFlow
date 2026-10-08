@@ -1,15 +1,17 @@
 import React from 'react';
-import { TransactionLifecycleStatus } from '@agriflow/types';
+import { TransactionLifecycleStatus, ContractInvocationStatus } from '@agriflow/types';
 import { cn } from './utils';
 
+export type AnyTransactionStatus = TransactionLifecycleStatus | ContractInvocationStatus | string;
+
 export interface StatusPillProps {
-  status: TransactionLifecycleStatus;
+  status: AnyTransactionStatus;
   className?: string;
 }
 
 export const StatusPill: React.FC<StatusPillProps> = ({ status, className }) => {
   const configs: Record<
-    TransactionLifecycleStatus,
+    string,
     { label: string; bg: string; dot: string; text: string; animateDot?: boolean }
   > = {
     idle: {
@@ -26,14 +28,28 @@ export const StatusPill: React.FC<StatusPillProps> = ({ status, className }) => 
       animateDot: true,
     },
     preparing: {
-      label: 'Building Transaction',
+      label: 'Preparing Parameters',
       bg: 'bg-amber-950/40 border-amber-800/40',
       dot: 'bg-amber-400',
       text: 'text-amber-300',
       animateDot: true,
     },
+    simulating: {
+      label: 'Simulating on Soroban RPC',
+      bg: 'bg-sky-950/50 border-sky-700/50',
+      dot: 'bg-sky-400',
+      text: 'text-sky-300',
+      animateDot: true,
+    },
     awaiting_approval: {
       label: 'Awaiting Wallet Approval',
+      bg: 'bg-sky-950/50 border-sky-700/50',
+      dot: 'bg-sky-400',
+      text: 'text-sky-300',
+      animateDot: true,
+    },
+    awaiting_signature: {
+      label: 'Awaiting Wallet Signature',
       bg: 'bg-sky-950/50 border-sky-700/50',
       dot: 'bg-sky-400',
       text: 'text-sky-300',
@@ -53,11 +69,23 @@ export const StatusPill: React.FC<StatusPillProps> = ({ status, className }) => 
       text: 'text-amber-200',
       animateDot: true,
     },
+    confirmed: {
+      label: 'Confirmed on Stellar Testnet',
+      bg: 'bg-emerald-950/60 border-emerald-700/60',
+      dot: 'bg-emerald-400',
+      text: 'text-emerald-300',
+    },
     success: {
       label: 'Confirmed on Stellar Testnet',
       bg: 'bg-emerald-950/60 border-emerald-700/60',
       dot: 'bg-emerald-400',
       text: 'text-emerald-300',
+    },
+    rejected: {
+      label: 'Signature Rejected by User',
+      bg: 'bg-slate-800/60 border-slate-700/60',
+      dot: 'bg-slate-400',
+      text: 'text-slate-400',
     },
     failed: {
       label: 'Transaction Failed',

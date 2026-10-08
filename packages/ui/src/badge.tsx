@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from './utils';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: 'emerald' | 'amber' | 'slate' | 'red' | 'blue';
+  variant?: 'emerald' | 'amber' | 'slate' | 'red' | 'blue' | 'neutral' | 'warning' | 'danger';
   size?: 'sm' | 'md';
 }
 
@@ -13,11 +13,14 @@ export const Badge: React.FC<BadgeProps> = ({
   children,
   ...props
 }) => {
-  const variants = {
+  const variants: Record<string, string> = {
     emerald: 'bg-emerald-950/70 text-emerald-300 border border-emerald-700/50',
     amber: 'bg-amber-950/70 text-amber-300 border border-amber-700/50',
+    warning: 'bg-amber-950/70 text-amber-300 border border-amber-700/50',
     slate: 'bg-slate-800/80 text-slate-300 border border-slate-700/60',
+    neutral: 'bg-slate-800/80 text-slate-300 border border-slate-700/60',
     red: 'bg-red-950/70 text-red-300 border border-red-700/50',
+    danger: 'bg-red-950/70 text-red-300 border border-red-700/50',
     blue: 'bg-sky-950/70 text-sky-300 border border-sky-700/50',
   };
 
