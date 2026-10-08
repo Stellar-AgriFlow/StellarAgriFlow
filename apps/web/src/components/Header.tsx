@@ -2,13 +2,13 @@
 
 import React from 'react';
 import { useWallet } from '../context/WalletContext';
-import { Button } from '@agriflow/ui';
+import { Button, Badge } from '@agriflow/ui';
 import { NetworkStatusBadge } from './NetworkStatusBadge';
-import { Sprout, Wallet, LogOut, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Sprout, Wallet, LogOut, ExternalLink, ChevronDown } from 'lucide-react';
 import { getAccountExplorerUrl } from '@agriflow/stellar';
 
 export const Header: React.FC = () => {
-  const { state, connect, disconnect } = useWallet();
+  const { state, openWalletModal, disconnect } = useWallet();
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/85 backdrop-blur-md">
@@ -28,7 +28,7 @@ export const Header: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-slate-400 hidden sm:block">
-              Global Agricultural Payments Powered by Stellar
+              Global Agricultural Payments & Soroban Passports
             </p>
           </div>
         </div>
@@ -66,12 +66,13 @@ export const Header: React.FC = () => {
             <Button
               variant="primary"
               size="sm"
-              onClick={connect}
+              onClick={openWalletModal}
               isLoading={state.status === 'connecting'}
               className="gap-2"
             >
               <Wallet className="w-4 h-4" />
               <span>Connect Wallet</span>
+              <ChevronDown className="w-3.5 h-3.5 opacity-70" />
             </Button>
           )}
         </div>

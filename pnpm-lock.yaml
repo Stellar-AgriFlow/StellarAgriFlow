@@ -178,6 +178,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@agriflow/contracts-client':
+        specifier: workspace:*
+        version: link:../../packages/contracts-client
       '@agriflow/stellar':
         specifier: workspace:*
         version: link:../../packages/stellar
@@ -238,6 +241,25 @@ importers:
         version: 5.9.3
 
   packages/config: {}
+
+  packages/contracts-client:
+    dependencies:
+      '@agriflow/stellar':
+        specifier: workspace:*
+        version: link:../stellar
+      '@agriflow/types':
+        specifier: workspace:*
+        version: link:../types
+      '@stellar/stellar-sdk':
+        specifier: ^17.2.1
+        version: 17.2.1(debug@4.4.3)
+    devDependencies:
+      '@agriflow/config':
+        specifier: workspace:*
+        version: link:../config
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
 
   packages/stellar:
     dependencies:

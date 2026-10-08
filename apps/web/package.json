@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@agriflow/contracts-client": "workspace:*",
     "@agriflow/stellar": "workspace:*",
     "@agriflow/types": "workspace:*",
     "@agriflow/ui": "workspace:*",

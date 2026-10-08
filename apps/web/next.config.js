@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@agriflow/stellar', '@agriflow/types', '@agriflow/ui'],
+  transpilePackages: [
+    '@agriflow/contracts-client',
+    '@agriflow/stellar',
+    '@agriflow/types',
+    '@agriflow/ui',
+  ],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

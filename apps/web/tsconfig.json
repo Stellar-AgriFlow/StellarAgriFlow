@@ -20,6 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@agriflow/contracts-client": ["../../packages/contracts-client/src/index.ts"],
       "@agriflow/types": ["../../packages/types/src/index.ts"],
       "@agriflow/stellar": ["../../packages/stellar/src/index.ts"],
       "@agriflow/ui": ["../../packages/ui/src/index.ts"]

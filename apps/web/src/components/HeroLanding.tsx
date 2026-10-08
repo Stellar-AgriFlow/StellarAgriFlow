@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const HeroLanding: React.FC = () => {
-  const { state, connect } = useWallet();
+  const { state, connect, openWalletModal } = useWallet();
 
   return (
     <div className="py-12 lg:py-20 max-w-6xl mx-auto px-4 sm:px-6">
@@ -71,18 +71,18 @@ export const HeroLanding: React.FC = () => {
           <Button
             size="lg"
             variant="primary"
-            onClick={() => connect('freighter')}
+            onClick={openWalletModal}
             isLoading={state.status === 'connecting'}
             className="w-full sm:w-auto text-base px-7 py-3.5 shadow-xl shadow-emerald-950/60"
           >
             <Wallet className="w-5 h-5 mr-2" />
-            Connect Freighter Wallet
+            Connect Wallet
           </Button>
 
           <Button
             size="lg"
             variant="outline"
-            onClick={() => connect('testnet_demo')}
+            onClick={() => connect('TESTNET_DEMO')}
             className="w-full sm:w-auto text-base px-6 py-3.5 border-emerald-800/80 hover:bg-emerald-950/40 text-emerald-300"
           >
             <span>Explore Testnet Terminal</span>
