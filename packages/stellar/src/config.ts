@@ -7,6 +7,13 @@ export const STELLAR_TESTNET_CONFIG: StellarNetworkConfig = {
   explorerUrl: process.env.NEXT_PUBLIC_EXPLORER_URL || 'https://stellar.expert/explorer/testnet',
 };
 
+export const STELLAR_SOROBAN_RPC_URL =
+  process.env.NEXT_PUBLIC_SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
+
+export const FARM_REGISTRY_CONTRACT_ID =
+  process.env.NEXT_PUBLIC_FARM_REGISTRY_CONTRACT_ID ||
+  'CBLQUEAJAI6PYQDEWQR2ICR2FPPP6KQN5ZEGPT4FD7MXCGBJZTOO2CDZ';
+
 export const STELLAR_BASE_FEE_STROOPS = '100';
 export const STELLAR_BASE_RESERVE_XLM = 0.5;
 export const STELLAR_MIN_ACCOUNT_RESERVE = 1.0; // 2 * base reserve for an account

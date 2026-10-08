@@ -10,6 +10,11 @@ export function getAccountExplorerUrl(address: string, baseUrl: string = STELLAR
   return `${cleanBase}/account/${encodeURIComponent(address)}`;
 }
 
+export function getContractExplorerUrl(contractId: string, baseUrl: string = STELLAR_TESTNET_CONFIG.explorerUrl): string {
+  const cleanBase = baseUrl.replace(/\/+$/, '');
+  return `${cleanBase}/contract/${encodeURIComponent(contractId)}`;
+}
+
 export function shortenAddress(address: string, chars: number = 4): string {
   if (!address) return '';
   if (address.length <= chars * 2 + 3) return address;
