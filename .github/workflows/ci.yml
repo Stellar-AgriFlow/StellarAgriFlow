@@ -10,6 +10,14 @@ jobs:
   contracts-test:
     name: Soroban Smart Contract Tests
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        contract:
+          - farm-registry
+          - agricultural-reputation
+          - agricultural-escrow
+          - agricultural-marketplace
+          - agricultural-finance
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,10 +30,10 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: contracts/farm-registry
+          workspaces: contracts/${{ matrix.contract }}
 
-      - name: Run FarmRegistry contract tests
-        working-directory: contracts/farm-registry
+      - name: Run ${{ matrix.contract }} contract tests
+        working-directory: contracts/${{ matrix.contract }}
         run: cargo test --verbose
 
   frontend-build-and-test:
@@ -49,7 +57,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile=false
 
-      - name: Run frontend & unit tests
+      - name: Run unit & integration tests
         run: pnpm test
 
       - name: Build applications and packages
@@ -61,3 +69,7 @@ jobs:
           NEXT_PUBLIC_SOROBAN_RPC_URL: "https://soroban-testnet.stellar.org"
           NEXT_PUBLIC_EXPLORER_URL: "https://stellar.expert/explorer/testnet"
           NEXT_PUBLIC_FARM_REGISTRY_CONTRACT_ID: "CBLQUEAJAI6PYQDEWQR2ICR2FPPP6KQN5ZEGPT4FD7MXCGBJZTOO2CDZ"
+          NEXT_PUBLIC_AGRICULTURAL_REPUTATION_CONTRACT_ID: "CBUME23GQVEJ5SWDA7EOTUFOGXSSC2RO5HFTUMXQDQOPWTGOM2YWU65S"
+          NEXT_PUBLIC_AGRICULTURAL_ESCROW_CONTRACT_ID: "CD72TIQ3LQKJJKQX44UJVF6CT2V6FLELKXQPZ6TZ66KUYLLGUHQI7RHD"
+          NEXT_PUBLIC_AGRICULTURAL_MARKETPLACE_CONTRACT_ID: "CD4RQ6D36NCTEXG22BPI3VBHZYJMES7CVS5Z7YLP4TJM3BI6IMHTVPF5"
+          NEXT_PUBLIC_AGRICULTURAL_FINANCE_CONTRACT_ID: "CBRTDNZPZYCKUO7U76DEWV32KAYXZ45JPL2FUPCJIKQIA47BWXZFMBCL"
