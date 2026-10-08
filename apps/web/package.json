@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@agriflow/contracts-client": "workspace:*",
+    "@agriflow/oracle": "workspace:*",
     "@agriflow/stellar": "workspace:*",
     "@agriflow/types": "workspace:*",
     "@agriflow/ui": "workspace:*",
