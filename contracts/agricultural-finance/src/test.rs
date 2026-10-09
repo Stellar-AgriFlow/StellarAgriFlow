@@ -8,9 +8,8 @@ pub struct MockRegistryContract;
 
 #[contractimpl]
 impl MockRegistryContract {
-    pub fn has_farm(_env: Env, farm_id: Symbol) -> bool {
-        let env = Env::default();
-        farm_id == Symbol::new(&env, "AGRI-000001")
+    pub fn has_farm(env: Env, farm_id: Symbol) -> bool {
+        farm_id == Symbol::new(&env, "AGRI_000001")
     }
 }
 
@@ -46,7 +45,7 @@ fn test_financing_lifecycle() {
 
     client.init(&admin, &registry_id, &rep_id);
 
-    let farm_id = Symbol::new(&env, "AGRI-000001");
+    let farm_id = Symbol::new(&env, "AGRI_000001");
     let purpose = Symbol::new(&env, "SeedsAndFertilizer");
 
     // Farmer creates financing request for 2,000 XLM, expected repayment 2,100 XLM over 90 days

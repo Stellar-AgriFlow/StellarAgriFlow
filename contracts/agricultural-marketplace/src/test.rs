@@ -25,9 +25,8 @@ pub struct MockFarmRegistryContract;
 
 #[contractimpl]
 impl MockFarmRegistryContract {
-    pub fn has_farm(_env: Env, farm_id: Symbol) -> bool {
-        let env = Env::default();
-        farm_id == Symbol::new(&env, "AGRI-000001")
+    pub fn has_farm(env: Env, farm_id: Symbol) -> bool {
+        farm_id == Symbol::new(&env, "AGRI_000001")
     }
 }
 
@@ -48,7 +47,7 @@ fn test_marketplace_listing_and_purchase() {
 
     client.init(&admin, &escrow_id, &registry_id);
 
-    let farm_id = Symbol::new(&env, "AGRI-000001");
+    let farm_id = Symbol::new(&env, "AGRI_000001");
     let crop_type = Symbol::new(&env, "Maize");
     let unit = Symbol::new(&env, "Bags");
     let location = Symbol::new(&env, "Nakuru");
@@ -94,7 +93,7 @@ fn test_create_listing_with_invalid_farm_id() {
 
     client.init(&admin, &escrow_id, &registry_id);
 
-    let invalid_farm_id = Symbol::new(&env, "NON-EXISTENT");
+    let invalid_farm_id = Symbol::new(&env, "NON_EXISTENT");
     client.create_listing(
         &seller,
         &invalid_farm_id,

@@ -5,12 +5,14 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   contracts-test:
     name: Soroban Smart Contract Tests
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         contract:
           - farm-registry
@@ -73,3 +75,54 @@ jobs:
           NEXT_PUBLIC_AGRICULTURAL_ESCROW_CONTRACT_ID: "CD72TIQ3LQKJJKQX44UJVF6CT2V6FLELKXQPZ6TZ66KUYLLGUHQI7RHD"
           NEXT_PUBLIC_AGRICULTURAL_MARKETPLACE_CONTRACT_ID: "CD4RQ6D36NCTEXG22BPI3VBHZYJMES7CVS5Z7YLP4TJM3BI6IMHTVPF5"
           NEXT_PUBLIC_AGRICULTURAL_FINANCE_CONTRACT_ID: "CBRTDNZPZYCKUO7U76DEWV32KAYXZ45JPL2FUPCJIKQIA47BWXZFMBCL"
+
+  vercel-deployment:
+    name: Vercel Production Deployment
+    needs: [contracts-test, frontend-build-and-test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 12
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Pull Vercel Environment Information
+        run: pnpm exec vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build Project Artifacts
+        run: pnpm exec vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NEXT_PUBLIC_STELLAR_NETWORK: TESTNET
+          NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+          NEXT_PUBLIC_HORIZON_URL: "https://horizon-testnet.stellar.org"
+          NEXT_PUBLIC_SOROBAN_RPC_URL: "https://soroban-testnet.stellar.org"
+          NEXT_PUBLIC_EXPLORER_URL: "https://stellar.expert/explorer/testnet"
+          NEXT_PUBLIC_FARM_REGISTRY_CONTRACT_ID: "CBLQUEAJAI6PYQDEWQR2ICR2FPPP6KQN5ZEGPT4FD7MXCGBJZTOO2CDZ"
+          NEXT_PUBLIC_AGRICULTURAL_REPUTATION_CONTRACT_ID: "CBUME23GQVEJ5SWDA7EOTUFOGXSSC2RO5HFTUMXQDQOPWTGOM2YWU65S"
+          NEXT_PUBLIC_AGRICULTURAL_ESCROW_CONTRACT_ID: "CD72TIQ3LQKJJKQX44UJVF6CT2V6FLELKXQPZ6TZ66KUYLLGUHQI7RHD"
+          NEXT_PUBLIC_AGRICULTURAL_MARKETPLACE_CONTRACT_ID: "CD4RQ6D36NCTEXG22BPI3VBHZYJMES7CVS5Z7YLP4TJM3BI6IMHTVPF5"
+          NEXT_PUBLIC_AGRICULTURAL_FINANCE_CONTRACT_ID: "CBRTDNZPZYCKUO7U76DEWV32KAYXZ45JPL2FUPCJIKQIA47BWXZFMBCL"
+
+      - name: Deploy Project Artifacts to Vercel
+        run: pnpm exec vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

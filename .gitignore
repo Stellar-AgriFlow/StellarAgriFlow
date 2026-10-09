@@ -18,3 +18,5 @@ data
 services/**/data
 
 .vercel
+test_snapshots
+contracts/**/test_snapshots

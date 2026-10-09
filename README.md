@@ -14,6 +14,52 @@ AgriFlow is a Web3 financial and trade protocol engineered to modernize global a
 
 ---
 
+## 📸 Product Functionality & UI Walkthrough
+
+AgriFlow provides an institutional-grade decentralized terminal connecting the entire physical agricultural supply chain with Soroban smart contracts and Stellar high-speed settlement.
+
+### 1. Landing Page & Non-Custodial Multi-Wallet Gateway
+Connect with Freighter, xBull, Albedo, Hana, or instant Stellar Testnet Account Preview to access the terminal.
+![AgriFlow Landing & Terminal Gateway](./docs/screenshots/01_landing_hero.png)
+
+---
+
+### 2. On-Chain Farm Passports (`FarmRegistry`)
+Verifiable agricultural identity registered directly on Soroban. Immutable on-chain passports store producer country, region, crop classification, farm acreage, and expected harvest yield metrics.
+![On-Chain Farm Passports](./docs/screenshots/02_farm_passports.png)
+
+---
+
+### 3. Collateralized Harvest Financing (`AgriculturalFinance`)
+Forward harvest micro-financing pools collateralized by verified Farm Passports. Farmers request operating capital in XLM, while liquidity providers fund requests and earn interest upon harvest settlement.
+![Harvest Financing Protocol](./docs/screenshots/03_harvest_financing.png)
+
+---
+
+### 4. Global Produce Marketplace (`AgriculturalMarketplace`)
+Decentralized commodity listings tied to verified on-chain producer passports. Buyers can filter produce by crop and initiate instant purchases backed by programmatic escrow.
+![Global Produce Marketplace](./docs/screenshots/04_agricultural_marketplace.png)
+
+---
+
+### 5. Non-Custodial Agricultural Escrow (`AgriculturalEscrow`)
+Safe trade settlements with multi-party conditional release. Funds remain locked on Soroban until physical cargo inspection and delivery confirmation.
+![Agricultural Escrow Terminal](./docs/screenshots/05_escrow_settlements.png)
+
+---
+
+### 6. Cross-Contract Reputation Protocol (`AgriculturalReputation`)
+Dynamic, tamper-proof trust scores (+10 for verified trades, +15 for funded harvest loans, +25 for loan repayments) minted automatically via cross-contract calls.
+![Agricultural Reputation & Trust Protocol](./docs/screenshots/06_reputation_protocol.png)
+
+---
+
+### 7. External Agricultural Oracle Feeds
+Real-time reference commodity benchmarks (Maize, Soybeans, Wheat, Coffee, Cocoa) in USD/XLM alongside regional drought risk indicators for informed trading and financing decisions.
+![Agricultural Oracle Data Feeds](./docs/screenshots/07_oracle_commodity_feeds.png)
+
+---
+
 ## 🌾 The Global Agricultural Problem & Web3 Solution
 
 Agricultural commerce represents over **$1.5 trillion in annual global trade**, yet the physical-to-financial pipeline suffers from structural friction:
