@@ -81,35 +81,50 @@ jobs:
     needs: [contracts-test, frontend-build-and-test]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
+      - name: Check Vercel Credentials
+        id: check-credentials
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::notice ::VERCEL_TOKEN is not configured in repository secrets. Skipping Vercel deployment until secrets are set."
+            echo "configured=false" >> $GITHUB_OUTPUT
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout repository
+        if: steps.check-credentials.outputs.configured == 'true'
         uses: actions/checkout@v4
 
       - name: Install pnpm
+        if: steps.check-credentials.outputs.configured == 'true'
         uses: pnpm/action-setup@v3
         with:
           version: 12
 
       - name: Setup Node.js
+        if: steps.check-credentials.outputs.configured == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
 
       - name: Install dependencies
+        if: steps.check-credentials.outputs.configured == 'true'
         run: pnpm install --no-frozen-lockfile
 
       - name: Pull Vercel Environment Information
-        run: pnpm exec vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        if: steps.check-credentials.outputs.configured == 'true'
+        run: pnpm exec vercel pull --yes --environment=production --token=$VERCEL_TOKEN
 
       - name: Build Project Artifacts
-        run: pnpm exec vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        if: steps.check-credentials.outputs.configured == 'true'
+        run: pnpm exec vercel build --prod --token=$VERCEL_TOKEN
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           NEXT_PUBLIC_STELLAR_NETWORK: TESTNET
           NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
           NEXT_PUBLIC_HORIZON_URL: "https://horizon-testnet.stellar.org"
@@ -122,7 +137,5 @@ jobs:
           NEXT_PUBLIC_AGRICULTURAL_FINANCE_CONTRACT_ID: "CBRTDNZPZYCKUO7U76DEWV32KAYXZ45JPL2FUPCJIKQIA47BWXZFMBCL"
 
       - name: Deploy Project Artifacts to Vercel
-        run: pnpm exec vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        if: steps.check-credentials.outputs.configured == 'true'
+        run: pnpm exec vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
