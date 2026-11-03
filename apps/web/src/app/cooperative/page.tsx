@@ -5,6 +5,8 @@ import { Landmark, Users, Plus, PiggyBank, ArrowDownLeft, ShieldCheck, CheckCirc
 import { BulkProcurementProposal, ProposalStatus, SubmitProposalParams } from '@agriflow/types';
 import { ProposalCard } from '../../components/cooperative/ProposalCard';
 import { CreateProposalModal } from '../../components/cooperative/CreateProposalModal';
+import { DepositSavingsModal } from '../../components/cooperative/DepositSavingsModal';
+import { WithdrawSavingsModal } from '../../components/cooperative/WithdrawSavingsModal';
 
 const MOCK_PROPOSALS: BulkProcurementProposal[] = [
   {
@@ -45,8 +47,27 @@ export default function CooperativeDashboardPage() {
   const [userSavings, setUserSavings] = useState<number>(3200);
   const [userShares] = useState<number>(15);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDepositOpen, setIsDepositOpen] = useState(false);
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [walletBalance, setWalletBalance] = useState<number>(10000);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'executed'>('all');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  const handleDeposit = async (amount: number) => {
+    setWalletBalance((prev) => Math.max(0, prev - amount));
+    setUserSavings((prev) => prev + amount);
+    setTreasuryBalance((prev) => prev + amount);
+    setActionNotice(`Staked ${amount.toLocaleString()} USDC into cooperative treasury.`);
+    setTimeout(() => setActionNotice(null), 4000);
+  };
+
+  const handleWithdraw = async (amount: number) => {
+    setUserSavings((prev) => Math.max(0, prev - amount));
+    setWalletBalance((prev) => prev + amount);
+    setTreasuryBalance((prev) => Math.max(0, prev - amount));
+    setActionNotice(`Withdrew ${amount.toLocaleString()} USDC from cooperative treasury.`);
+    setTimeout(() => setActionNotice(null), 4000);
+  };
 
   const handleVote = async (proposalId: number) => {
     setProposals((prev) =>
@@ -156,16 +177,32 @@ export default function CooperativeDashboardPage() {
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div className="flex items-center justify-between text-slate-400 text-xs mb-2">
-              <span>Your Staked Savings</span>
-              <ArrowDownLeft className="w-4 h-4 text-teal-400" />
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400 text-xs mb-2">
+                <span>Your Staked Savings</span>
+                <ArrowDownLeft className="w-4 h-4 text-teal-400" />
+              </div>
+              <div className="text-2xl font-bold font-mono text-white">
+                {userSavings.toLocaleString()} <span className="text-sm font-normal text-slate-400">USDC</span>
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                Yield: 6.4% APY Seasonal
+              </div>
             </div>
-            <div className="text-2xl font-bold font-mono text-white">
-              {userSavings.toLocaleString()} <span className="text-sm font-normal text-slate-400">USDC</span>
-            </div>
-            <div className="text-xs text-slate-400 mt-1">
-              Yield: 6.4% APY Seasonal
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-800">
+              <button
+                onClick={() => setIsDepositOpen(true)}
+                className="flex-1 py-1.5 bg-emerald-600/80 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition"
+              >
+                + Stake
+              </button>
+              <button
+                onClick={() => setIsWithdrawOpen(true)}
+                className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition"
+              >
+                Withdraw
+              </button>
             </div>
           </div>
 
@@ -234,6 +271,22 @@ export default function CooperativeDashboardPage() {
           onSubmit={handleCreateProposal}
           treasuryBalance={treasuryBalance}
           proposerAddress="GBBCOOPFARMER89712KLSADJFOEWIRUDKL"
+        />
+
+        {/* Deposit Savings Modal */}
+        <DepositSavingsModal
+          isOpen={isDepositOpen}
+          onClose={() => setIsDepositOpen(false)}
+          onDeposit={handleDeposit}
+          walletBalance={walletBalance}
+        />
+
+        {/* Withdraw Savings Modal */}
+        <WithdrawSavingsModal
+          isOpen={isWithdrawOpen}
+          onClose={() => setIsWithdrawOpen(false)}
+          onWithdraw={handleWithdraw}
+          stakedBalance={userSavings}
         />
       </div>
     </div>
