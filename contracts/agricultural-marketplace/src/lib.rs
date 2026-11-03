@@ -30,6 +30,7 @@ pub enum DataKey {
     FarmRegistryContract,
     ListingCount,
     Listing(u32),
+    Paused,
 }
 
 #[contract]
@@ -55,9 +56,32 @@ impl AgriculturalMarketplaceContract {
             .instance()
             .set(&DataKey::FarmRegistryContract, &farm_registry_contract);
         env.storage().instance().set(&DataKey::ListingCount, &0u32);
+        env.storage().instance().set(&DataKey::Paused, &false);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+    }
+
+    pub fn set_paused(env: Env, admin: Address, paused: bool) {
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Not initialized");
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            panic!("Unauthorized admin");
+        }
+        env.storage().instance().set(&DataKey::Paused, &paused);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish((Symbol::new(&env, "MarketplacePaused"),), paused);
+    }
+
+    pub fn is_paused(env: Env) -> bool {
+        env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
     }
 
     pub fn create_listing(
@@ -70,6 +94,9 @@ impl AgriculturalMarketplaceContract {
         price_per_unit: i128,
         location: Symbol,
     ) -> u32 {
+        if Self::is_paused(env.clone()) {
+            panic!("Marketplace is paused");
+        }
         seller.require_auth();
         if quantity == 0 {
             panic!("Quantity must be greater than zero");
@@ -146,6 +173,9 @@ impl AgriculturalMarketplaceContract {
     }
 
     pub fn purchase_listing(env: Env, buyer: Address, listing_id: u32) -> u32 {
+        if Self::is_paused(env.clone()) {
+            panic!("Marketplace is paused");
+        }
         buyer.require_auth();
         let mut listing = Self::get_listing(env.clone(), listing_id);
 

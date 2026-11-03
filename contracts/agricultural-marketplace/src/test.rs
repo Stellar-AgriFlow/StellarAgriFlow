@@ -151,3 +151,24 @@ fn test_expire_stale_listing() {
     let listing = client.get_listing(&listing_id);
     assert_eq!(listing.status, 3); // Expired
 }
+
+#[test]
+fn test_marketplace_circuit_breaker() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let escrow_id = env.register(MockEscrowContract, ());
+    let registry_id = env.register(MockFarmRegistryContract, ());
+
+    let market_id = env.register(AgriculturalMarketplaceContract, ());
+    let client = AgriculturalMarketplaceContractClient::new(&env, &market_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin, &escrow_id, &registry_id);
+
+    assert_eq!(client.is_paused(), false);
+    client.set_paused(&admin, &true);
+    assert_eq!(client.is_paused(), true);
+    client.set_paused(&admin, &false);
+    assert_eq!(client.is_paused(), false);
+}
