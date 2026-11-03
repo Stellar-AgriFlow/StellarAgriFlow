@@ -231,3 +231,33 @@ fn test_insurance_circuit_breaker() {
     client.set_paused(&admin, &false);
     assert_eq!(client.is_paused(), false);
 }
+
+#[test]
+fn test_insufficient_liquidity_protection() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let oracle_id = env.register(MockWeatherOracle, ());
+
+    let contract_id = env.register(ParametricInsuranceContract, ());
+    let client = ParametricInsuranceContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let lp = Address::generate(&env);
+    let farmer = Address::generate(&env);
+
+    client.initialize(&admin, &oracle_id);
+
+    // Pool only has 1,000 stroops
+    client.deposit_liquidity(&lp, &1_000_0000);
+
+    // Farmer attempts to buy 50,000 coverage -> should fail with InsufficientPoolLiquidity
+    let err_policy = client.try_purchase_policy(
+        &farmer,
+        &Symbol::new(&env, "NG_KANO"),
+        &75,
+        &50_000_0000,
+        &90,
+    );
+    assert_eq!(err_policy.err(), Some(Ok(InsuranceError::InsufficientPoolLiquidity)));
+}
