@@ -104,3 +104,21 @@ fn test_create_listing_with_invalid_farm_id() {
         &Symbol::new(&env, "Eldoret"),
     );
 }
+
+#[test]
+fn test_volume_discounting() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let market_id = env.register(AgriculturalMarketplaceContract, ());
+    let client = AgriculturalMarketplaceContractClient::new(&env, &market_id);
+
+    // 50 units @ 10 = 500 (0% discount)
+    assert_eq!(client.calculate_discounted_total(&10, &50), 500);
+
+    // 100 units @ 10 = 1000 - 5% = 950
+    assert_eq!(client.calculate_discounted_total(&10, &100), 950);
+
+    // 500 units @ 10 = 5000 - 10% = 4500
+    assert_eq!(client.calculate_discounted_total(&10, &500), 4500);
+}

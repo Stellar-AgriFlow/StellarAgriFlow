@@ -127,6 +127,24 @@ impl AgriculturalMarketplaceContract {
         count
     }
 
+    /// Calculate bulk volume wholesale discount on agricultural lots
+    pub fn calculate_discounted_total(
+        _env: Env,
+        price_per_unit: i128,
+        quantity: u32,
+    ) -> i128 {
+        let raw_total = (quantity as i128)
+            .checked_mul(price_per_unit)
+            .expect("Overflow");
+        if quantity >= 500 {
+            raw_total * 90 / 100 // 10% bulk wholesale discount
+        } else if quantity >= 100 {
+            raw_total * 95 / 100 // 5% tier discount
+        } else {
+            raw_total
+        }
+    }
+
     pub fn purchase_listing(env: Env, buyer: Address, listing_id: u32) -> u32 {
         buyer.require_auth();
         let mut listing = Self::get_listing(env.clone(), listing_id);
@@ -138,9 +156,11 @@ impl AgriculturalMarketplaceContract {
             panic!("Seller cannot purchase own listing");
         }
 
-        let total_amount = (listing.quantity as i128)
-            .checked_mul(listing.price_per_unit)
-            .expect("Amount overflow");
+        let total_amount = Self::calculate_discounted_total(
+            env.clone(),
+            listing.price_per_unit,
+            listing.quantity,
+        );
 
         let escrow_contract: Address = env
             .storage()
