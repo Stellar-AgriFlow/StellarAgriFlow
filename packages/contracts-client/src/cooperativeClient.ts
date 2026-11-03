@@ -7,7 +7,7 @@ import {
 } from '@agriflow/types';
 
 export const DEFAULT_COOPERATIVE_CONTRACT_ID =
-  'CACOOPVAULTA4GRICULTURESTREASURYSTK6QUORUMVOTING9999999999';
+  'CACOOPVAULTA4GRICULTURESTREASURYSTK6QUORUMVOTING99999999';
 
 export class CooperativeVaultClient extends BaseSorobanClient {
   constructor(config?: Partial<BaseClientConfig> | string) {
