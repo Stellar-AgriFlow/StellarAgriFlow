@@ -7,3 +7,4 @@ export * from './reputation';
 export * from './warehouse-receipt';
 export * from './insurance';
 export * from './events';
+export * from './indexer';
