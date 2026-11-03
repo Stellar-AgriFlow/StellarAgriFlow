@@ -350,6 +350,20 @@ impl ParametricInsuranceContract {
     pub fn get_total_shares(env: Env) -> i128 {
         env.storage().instance().get(&DataKey::TotalShares).unwrap_or(0)
     }
+
+    /// Retrieve all insurance policies purchased by a specific farmer address
+    pub fn get_policies_by_farmer(env: Env, farmer: Address) -> soroban_sdk::Vec<InsurancePolicy> {
+        let count = Self::get_policy_count(env.clone());
+        let mut user_policies: soroban_sdk::Vec<InsurancePolicy> = soroban_sdk::Vec::new(&env);
+        for id in 1..=count {
+            if let Ok(policy) = Self::get_policy(env.clone(), id) {
+                if policy.farmer == farmer {
+                    user_policies.push_back(policy);
+                }
+            }
+        }
+        user_policies
+    }
 }
 
 #[cfg(test)]

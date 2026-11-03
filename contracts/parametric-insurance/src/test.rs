@@ -181,3 +181,27 @@ fn test_expire_policy() {
     assert_eq!(expired.is_expired, true);
     assert_eq!(expired.is_paid, false);
 }
+
+#[test]
+fn test_get_policies_by_farmer() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let oracle_id = env.register(MockWeatherOracle, ());
+
+    let contract_id = env.register(ParametricInsuranceContract, ());
+    let client = ParametricInsuranceContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let lp = Address::generate(&env);
+    let farmer = Address::generate(&env);
+
+    client.initialize(&admin, &oracle_id);
+    client.deposit_liquidity(&lp, &50_000_0000);
+
+    client.purchase_policy(&farmer, &Symbol::new(&env, "NG_KANO"), &70, &1_000_0000, &30);
+    client.purchase_policy(&farmer, &Symbol::new(&env, "KE_NAK"), &75, &2_000_0000, &45);
+
+    let farmer_policies = client.get_policies_by_farmer(&farmer);
+    assert_eq!(farmer_policies.len(), 2);
+}
