@@ -8,6 +8,7 @@ import { CreateProposalModal } from '../../components/cooperative/CreateProposal
 import { DepositSavingsModal } from '../../components/cooperative/DepositSavingsModal';
 import { WithdrawSavingsModal } from '../../components/cooperative/WithdrawSavingsModal';
 import { DividendDistributionModal } from '../../components/cooperative/DividendDistributionModal';
+import { ClaimableEscrowCard, ClaimableEscrowItem } from '../../components/cooperative/ClaimableEscrowCard';
 
 const MOCK_PROPOSALS: BulkProcurementProposal[] = [
   {
@@ -54,6 +55,37 @@ export default function CooperativeDashboardPage() {
   const [walletBalance, setWalletBalance] = useState<number>(10000);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'executed'>('all');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  const [escrows, setEscrows] = useState<ClaimableEscrowItem[]>([
+    {
+      id: 'CB-8921',
+      title: 'Certified Seed Delivery Escrow (72h Inspection)',
+      amount: 8200,
+      assetCode: 'USDC',
+      sponsor: 'GBBCOOPFARMER89712KLSADJFOEWIRUDKL',
+      claimant: 'GCSEEDCORP002HARVEST777STELLARKEY',
+      unlockTimestamp: Math.floor(Date.now() / 1000) - 3600,
+      status: 'READY_TO_CLAIM',
+    },
+    {
+      id: 'CB-9410',
+      title: 'Tractor Fleet Seasonal Lease Deposit',
+      amount: 14500,
+      assetCode: 'USDC',
+      sponsor: 'GBBCOOPFARMER89712KLSADJFOEWIRUDKL',
+      claimant: 'GCTRACTORLEASE888MACHINERYSTELLARKEY',
+      unlockTimestamp: Math.floor(Date.now() / 1000) + 86400 * 5,
+      status: 'LOCKED',
+    },
+  ]);
+
+  const handleClaimEscrow = async (id: string) => {
+    setEscrows((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, status: 'CLAIMED' } : e))
+    );
+    setActionNotice(`Claimed conditional balance ${id}. Funds settled to claimant wallet.`);
+    setTimeout(() => setActionNotice(null), 4000);
+  };
 
   const handleDistributeDividends = async (totalPool: number) => {
     setTreasuryBalance((prev) => Math.max(0, prev - totalPool));
@@ -276,6 +308,28 @@ export default function CooperativeDashboardPage() {
               isAdmin={true}
             />
           ))}
+        </div>
+
+        {/* Time-Locked Claimable Escrows */}
+        <div className="space-y-4 pt-6 border-t border-slate-800">
+          <div>
+            <h2 className="text-xl font-bold text-white">
+              Time-Locked Supplier Escrows (Stellar Claimable Balances)
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Conditional escrow balances governed by on-chain absolute and relative time predicates.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {escrows.map((item) => (
+              <ClaimableEscrowCard
+                key={item.id}
+                item={item}
+                onClaim={handleClaimEscrow}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Create Proposal Modal */}
