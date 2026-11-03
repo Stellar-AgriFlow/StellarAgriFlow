@@ -231,3 +231,39 @@ fn test_get_receipts_by_owner() {
     let farmer_receipts = client.get_receipts_by_owner(&farmer);
     assert_eq!(farmer_receipts.len(), 2);
 }
+
+#[test]
+fn test_warehouse_receipt_circuit_breaker() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(WarehouseReceiptContract, ());
+    let client = WarehouseReceiptContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let custodian = Address::generate(&env);
+    let farmer = Address::generate(&env);
+
+    client.initialize(&admin);
+    client.add_custodian(&admin, &custodian);
+
+    assert_eq!(client.is_paused(), false);
+    client.set_paused(&admin, &true);
+    assert_eq!(client.is_paused(), true);
+
+    // Minting while paused should fail
+    let err_mint = client.try_mint_receipt(
+        &custodian,
+        &farmer,
+        &Symbol::new(&env, "SILO_01"),
+        &Symbol::new(&env, "Maize"),
+        &10_000,
+        &Symbol::new(&env, "Grade1"),
+        &1250,
+        &2026,
+    );
+    assert_eq!(err_mint.err(), Some(Ok(ReceiptError::ContractPaused)));
+
+    client.set_paused(&admin, &false);
+    assert_eq!(client.is_paused(), false);
+}

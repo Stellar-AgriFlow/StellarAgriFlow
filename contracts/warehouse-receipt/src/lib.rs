@@ -168,6 +168,28 @@ impl WarehouseReceiptContract {
         custodians.len()
     }
 
+    pub fn set_paused(env: Env, admin: Address, paused: bool) -> Result<(), ReceiptError> {
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(ReceiptError::NotInitialized)?;
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            return Err(ReceiptError::Unauthorized);
+        }
+
+        env.storage().instance().set(&DataKey::Paused, &paused);
+        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish((symbol_short!("r_pause"),), paused);
+        Ok(())
+    }
+
+    pub fn is_paused(env: Env) -> bool {
+        env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
+    }
+
     /// Mint a tokenized Electronic Negotiable Warehouse Receipt (e-NWR) for physical deposited commodities
     pub fn mint_receipt(
         env: Env,
@@ -181,6 +203,9 @@ impl WarehouseReceiptContract {
         harvest_year: u32,
     ) -> Result<u32, ReceiptError> {
         custodian.require_auth();
+        if Self::is_paused(env.clone()) {
+            return Err(ReceiptError::ContractPaused);
+        }
         if !Self::is_custodian(env.clone(), custodian.clone()) {
             return Err(ReceiptError::Unauthorized);
         }
@@ -240,6 +265,9 @@ impl WarehouseReceiptContract {
         pledgee: Address,
     ) -> Result<(), ReceiptError> {
         owner.require_auth();
+        if Self::is_paused(env.clone()) {
+            return Err(ReceiptError::ContractPaused);
+        }
         let mut receipt = Self::get_receipt(env.clone(), receipt_id)?;
 
         if receipt.owner != owner {
@@ -301,6 +329,9 @@ impl WarehouseReceiptContract {
         receipt_id: u32,
     ) -> Result<(), ReceiptError> {
         custodian.require_auth();
+        if Self::is_paused(env.clone()) {
+            return Err(ReceiptError::ContractPaused);
+        }
         if !Self::is_custodian(env.clone(), custodian.clone()) {
             return Err(ReceiptError::Unauthorized);
         }
@@ -333,6 +364,9 @@ impl WarehouseReceiptContract {
         new_owner: Address,
     ) -> Result<(), ReceiptError> {
         current_owner.require_auth();
+        if Self::is_paused(env.clone()) {
+            return Err(ReceiptError::ContractPaused);
+        }
         let mut receipt = Self::get_receipt(env.clone(), receipt_id)?;
 
         if receipt.owner != current_owner {
