@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  stellar-quickstart:
+    image: stellar/quickstart:testing
+    container_name: agriflow-stellar-local
+    platform: linux/amd64
+    command: --standalone --enable-soroban-rpc
+    ports:
+      - '8000:8000' # Horizon HTTP
+      - '11600:11600' # Stellar Core peer
+      - '11625:11625' # Stellar Core HTTP
+      - '11626:11626' # Stellar Core admin
+      - '8001:8001' # Soroban RPC HTTP
+    environment:
+      - NETWORK_PASSPHRASE=Standalone Network ; February 2017
+    restart: unless-stopped
+
+  agriflow-web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    container_name: agriflow-web-dev
+    ports:
+      - '3000:3000'
+    environment:
+      - NEXT_PUBLIC_STELLAR_NETWORK=standalone
+      - NEXT_PUBLIC_HORIZON_URL=http://localhost:8000
+      - NEXT_PUBLIC_SOROBAN_RPC_URL=http://localhost:8001
+    depends_on:
+      - stellar-quickstart
+    restart: unless-stopped
