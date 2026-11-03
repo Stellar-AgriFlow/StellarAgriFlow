@@ -17,7 +17,8 @@
     "@stellar/stellar-sdk": "^17.4.0",
     "turbo": "^2.4.4",
     "typescript": "^5.8.2",
-    "vitest": "^3.0.7"
+    "vitest": "^3.0.7",
+    "zod": "^4.6.7"
   },
   "packageManager": "pnpm@9.15.9",
   "engines": {

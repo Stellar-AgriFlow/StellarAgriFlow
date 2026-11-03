@@ -10,5 +10,8 @@
   "devDependencies": {
     "@agriflow/config": "workspace:*",
     "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
   }
 }
