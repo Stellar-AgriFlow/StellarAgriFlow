@@ -82,3 +82,43 @@ fn test_mint_warehouse_receipt() {
     assert_eq!(receipt.is_pledged, false);
     assert_eq!(receipt.is_redeemed, false);
 }
+
+#[test]
+fn test_pledge_and_unpledge_collateral() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(WarehouseReceiptContract, ());
+    let client = WarehouseReceiptContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let custodian = Address::generate(&env);
+    let farmer = Address::generate(&env);
+    let lender = Address::generate(&env);
+
+    client.initialize(&admin);
+    client.add_custodian(&admin, &custodian);
+
+    let receipt_id = client.mint_receipt(
+        &custodian,
+        &farmer,
+        &Symbol::new(&env, "SILO_01"),
+        &Symbol::new(&env, "Wheat"),
+        &10_000,
+        &Symbol::new(&env, "Grade1"),
+        &1200,
+        &2026,
+    );
+
+    // Farmer pledges receipt to lender
+    client.pledge_as_collateral(&farmer, &receipt_id, &lender);
+    let pledged = client.get_receipt(&receipt_id);
+    assert_eq!(pledged.is_pledged, true);
+    assert_eq!(pledged.pledgee, Some(lender.clone()));
+
+    // Lender releases pledge upon full debt settlement
+    client.unpledge_collateral(&lender, &receipt_id);
+    let released = client.get_receipt(&receipt_id);
+    assert_eq!(released.is_pledged, false);
+    assert_eq!(released.pledgee, None);
+}

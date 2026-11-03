@@ -231,6 +231,68 @@ impl WarehouseReceiptContract {
             .get(&DataKey::Receipt(receipt_id))
             .ok_or(ReceiptError::ReceiptNotFound)
     }
+
+    /// Lock warehouse receipt as collateral backing a loan or credit line
+    pub fn pledge_as_collateral(
+        env: Env,
+        owner: Address,
+        receipt_id: u32,
+        pledgee: Address,
+    ) -> Result<(), ReceiptError> {
+        owner.require_auth();
+        let mut receipt = Self::get_receipt(env.clone(), receipt_id)?;
+
+        if receipt.owner != owner {
+            return Err(ReceiptError::Unauthorized);
+        }
+        if receipt.is_pledged {
+            return Err(ReceiptError::ReceiptAlreadyPledged);
+        }
+        if receipt.is_redeemed {
+            return Err(ReceiptError::ReceiptAlreadyRedeemed);
+        }
+
+        receipt.is_pledged = true;
+        receipt.pledgee = Some(pledgee.clone());
+
+        env.storage().persistent().set(&DataKey::Receipt(receipt_id), &receipt);
+        env.storage().persistent().extend_ttl(&DataKey::Receipt(receipt_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (symbol_short!("r_pledge"), receipt_id),
+            (owner, pledgee),
+        );
+        Ok(())
+    }
+
+    /// Release lien from warehouse receipt upon loan repayment (only pledgee can release)
+    pub fn unpledge_collateral(
+        env: Env,
+        pledgee: Address,
+        receipt_id: u32,
+    ) -> Result<(), ReceiptError> {
+        pledgee.require_auth();
+        let mut receipt = Self::get_receipt(env.clone(), receipt_id)?;
+
+        if receipt.pledgee != Some(pledgee.clone()) {
+            return Err(ReceiptError::Unauthorized);
+        }
+        if !receipt.is_pledged {
+            return Err(ReceiptError::ReceiptNotPledged);
+        }
+
+        receipt.is_pledged = false;
+        receipt.pledgee = None;
+
+        env.storage().persistent().set(&DataKey::Receipt(receipt_id), &receipt);
+        env.storage().persistent().extend_ttl(&DataKey::Receipt(receipt_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (symbol_short!("r_unpld"), receipt_id),
+            pledgee,
+        );
+        Ok(())
+    }
 }
 
 #[cfg(test)]
