@@ -167,6 +167,70 @@ impl WarehouseReceiptContract {
             .unwrap_or(Vec::new(&env));
         custodians.len()
     }
+
+    /// Mint a tokenized Electronic Negotiable Warehouse Receipt (e-NWR) for physical deposited commodities
+    pub fn mint_receipt(
+        env: Env,
+        custodian: Address,
+        farmer: Address,
+        warehouse_id: Symbol,
+        commodity: Symbol,
+        quantity_kg: u64,
+        grade: Symbol,
+        moisture_percent_e2: u32,
+        harvest_year: u32,
+    ) -> Result<u32, ReceiptError> {
+        custodian.require_auth();
+        if !Self::is_custodian(env.clone(), custodian.clone()) {
+            return Err(ReceiptError::Unauthorized);
+        }
+        if quantity_kg == 0 || moisture_percent_e2 > 3500 {
+            // Moisture > 35.00% is physically unacceptable for grain storage
+            return Err(ReceiptError::InvalidMetrics);
+        }
+
+        let mut count: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::ReceiptCount)
+            .unwrap_or(0);
+        count += 1;
+
+        let receipt = WarehouseReceipt {
+            receipt_id: count,
+            owner: farmer.clone(),
+            warehouse_id: warehouse_id.clone(),
+            commodity: commodity.clone(),
+            quantity_kg,
+            grade: grade.clone(),
+            moisture_percent_e2,
+            harvest_year,
+            is_pledged: false,
+            pledgee: None,
+            is_redeemed: false,
+            created_at: env.ledger().timestamp(),
+        };
+
+        env.storage().persistent().set(&DataKey::Receipt(count), &receipt);
+        env.storage().instance().set(&DataKey::ReceiptCount, &count);
+        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(&DataKey::Receipt(count), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (symbol_short!("r_mint"), count),
+            (farmer, commodity, quantity_kg),
+        );
+
+        Ok(count)
+    }
+
+    /// Retrieve an existing warehouse receipt by ID
+    pub fn get_receipt(env: Env, receipt_id: u32) -> Result<WarehouseReceipt, ReceiptError> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::Receipt(receipt_id))
+            .ok_or(ReceiptError::ReceiptNotFound)
+    }
 }
 
 #[cfg(test)]
