@@ -1,0 +1,46 @@
+name: Soroban Smart Contracts CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/soroban-contracts-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/soroban-contracts-ci.yml'
+
+jobs:
+  test-and-build:
+    name: Test & Build Soroban Contracts
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.rust }}
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+
+      - name: Check Formatting
+        run: cargo fmt --manifest-path contracts/Cargo.toml --all -- --check
+
+      - name: Run Contract Unit & Integration Tests
+        run: cargo test --manifest-path contracts/Cargo.toml --workspace --verbose
+
+      - name: Build Contracts for Wasm32 Release
+        run: cargo build --manifest-path contracts/Cargo.toml --target wasm32-unknown-unknown --release
