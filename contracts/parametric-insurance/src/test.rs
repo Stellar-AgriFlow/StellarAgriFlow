@@ -77,3 +77,38 @@ fn test_withdraw_liquidity() {
     assert_eq!(client.get_user_shares(&lp), 6_000_0000);
     assert_eq!(client.get_total_shares(), 6_000_0000);
 }
+
+#[test]
+fn test_purchase_policy() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let oracle_id = env.register(MockWeatherOracle, ());
+
+    let contract_id = env.register(ParametricInsuranceContract, ());
+    let client = ParametricInsuranceContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let lp = Address::generate(&env);
+    let farmer = Address::generate(&env);
+
+    client.initialize(&admin, &oracle_id);
+
+    // LP funds the pool with 20,000 stroops
+    client.deposit_liquidity(&lp, &20_000_0000);
+
+    // Farmer buys 5,000 coverage policy for Kano drought index >= 75
+    let region = Symbol::new(&env, "NG_KANO");
+    let policy_id = client.purchase_policy(&farmer, &region, &75, &5_000_0000, &90);
+    assert_eq!(policy_id, 1);
+    assert_eq!(client.get_policy_count(), 1);
+
+    let policy = client.get_policy(&policy_id);
+    assert_eq!(policy.farmer, farmer);
+    assert_eq!(policy.payout_amount, 5_000_0000);
+    assert_eq!(policy.premium_paid, 250_0000); // 5% of 5,000 = 250
+    assert_eq!(policy.is_paid, false);
+
+    // Pool liquidity increased by premium: 20,000 + 250 = 20,250
+    assert_eq!(client.get_total_liquidity(), 20_250_0000);
+}

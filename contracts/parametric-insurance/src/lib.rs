@@ -181,6 +181,72 @@ impl ParametricInsuranceContract {
         Ok(payout_amount)
     }
 
+    /// Calculate policy premium based on requested payout amount and duration
+    pub fn calculate_premium(_env: Env, payout_amount: i128, _duration_days: u32) -> i128 {
+        payout_amount * 5 / 100 // 5% seasonal premium rate
+    }
+
+    /// Purchase a parametric weather risk protection policy
+    pub fn purchase_policy(
+        env: Env,
+        farmer: Address,
+        region: Symbol,
+        trigger_drought_index: u32,
+        payout_amount: i128,
+        duration_days: u32,
+    ) -> Result<u32, InsuranceError> {
+        farmer.require_auth();
+        if payout_amount <= 0 || duration_days == 0 || trigger_drought_index > 100 {
+            return Err(InsuranceError::InvalidAmount);
+        }
+
+        let total_liq: i128 = env.storage().instance().get(&DataKey::TotalLiquidity).unwrap_or(0);
+        if total_liq < payout_amount {
+            return Err(InsuranceError::InsufficientPoolLiquidity);
+        }
+
+        let premium = Self::calculate_premium(env.clone(), payout_amount, duration_days);
+
+        let mut count: u32 = env.storage().instance().get(&DataKey::PolicyCount).unwrap_or(0);
+        count += 1;
+
+        let policy = InsurancePolicy {
+            policy_id: count,
+            farmer: farmer.clone(),
+            region: region.clone(),
+            trigger_drought_index,
+            payout_amount,
+            premium_paid: premium,
+            is_paid: false,
+            is_expired: false,
+            duration_days,
+            created_at: env.ledger().timestamp(),
+        };
+
+        let new_total_liq = total_liq + premium;
+        env.storage().instance().set(&DataKey::TotalLiquidity, &new_total_liq);
+
+        env.storage().persistent().set(&DataKey::Policy(count), &policy);
+        env.storage().instance().set(&DataKey::PolicyCount, &count);
+
+        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(&DataKey::Policy(count), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (symbol_short!("pol_buy"), count),
+            (farmer, region, payout_amount, premium),
+        );
+
+        Ok(count)
+    }
+
+    pub fn get_policy(env: Env, policy_id: u32) -> Result<InsurancePolicy, InsuranceError> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::Policy(policy_id))
+            .ok_or(InsuranceError::PolicyNotFound)
+    }
+
     pub fn get_user_shares(env: Env, user: Address) -> i128 {
         env.storage().persistent().get(&DataKey::Shares(user)).unwrap_or(0)
     }
