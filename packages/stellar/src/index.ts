@@ -9,3 +9,4 @@ export * from './sep38';
 export * from './sep24';
 export * from './sep01';
 export * from './keyManager';
+export * from './sorobanFeeEstimator';
