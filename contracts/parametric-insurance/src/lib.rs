@@ -247,6 +247,67 @@ impl ParametricInsuranceContract {
             .ok_or(InsuranceError::PolicyNotFound)
     }
 
+    /// Automatically verify weather oracle trigger and disburse claim payout
+    pub fn trigger_policy_payout(
+        env: Env,
+        caller: Address,
+        policy_id: u32,
+    ) -> Result<i128, InsuranceError> {
+        caller.require_auth();
+        let mut policy = Self::get_policy(env.clone(), policy_id)?;
+
+        if policy.is_paid {
+            return Err(InsuranceError::PolicyAlreadyPaid);
+        }
+        if policy.is_expired {
+            return Err(InsuranceError::PolicyExpired);
+        }
+
+        let oracle_addr: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::WeatherOracleContract)
+            .ok_or(InsuranceError::NotInitialized)?;
+
+        // Query weather oracle: check_drought_trigger(region, threshold)
+        let args = vec![
+            &env,
+            policy.region.clone().into_val(&env),
+            policy.trigger_drought_index.into_val(&env),
+        ];
+
+        let is_triggered: bool = env.invoke_contract(
+            &oracle_addr,
+            &Symbol::new(&env, "check_drought_trigger"),
+            args,
+        );
+
+        if !is_triggered {
+            return Err(InsuranceError::TriggerConditionNotMet);
+        }
+
+        let total_liq: i128 = env.storage().instance().get(&DataKey::TotalLiquidity).unwrap_or(0);
+        if total_liq < policy.payout_amount {
+            return Err(InsuranceError::InsufficientPoolLiquidity);
+        }
+
+        let new_total_liq = total_liq - policy.payout_amount;
+        env.storage().instance().set(&DataKey::TotalLiquidity, &new_total_liq);
+
+        policy.is_paid = true;
+        env.storage().persistent().set(&DataKey::Policy(policy_id), &policy);
+
+        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(&DataKey::Policy(policy_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (symbol_short!("pol_pay"), policy_id),
+            (policy.farmer, policy.payout_amount),
+        );
+
+        Ok(policy.payout_amount)
+    }
+
     pub fn get_user_shares(env: Env, user: Address) -> i128 {
         env.storage().persistent().get(&DataKey::Shares(user)).unwrap_or(0)
     }
