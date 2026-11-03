@@ -9,6 +9,7 @@ members = [
     "warehouse-receipt",
     "parametric-insurance",
     "collateral-liquidation",
+    "cooperative-vault",
 ]
 
 [profile.release]
