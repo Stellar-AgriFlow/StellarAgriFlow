@@ -8,3 +8,5 @@ export * from './marketplace';
 export * from './reputation';
 export * from './oracle';
 export * from './indexer';
+export * from './receipt';
+export * from './insurance';
