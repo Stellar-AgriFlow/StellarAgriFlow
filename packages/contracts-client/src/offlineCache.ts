@@ -7,6 +7,14 @@ export interface CachedItem<T> {
 export class OfflineStorageCache {
   private memoryFallback: Map<string, string> = new Map();
 
+  private isBrowserStorageAvailable(): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      typeof window.localStorage !== 'undefined' &&
+      typeof window.localStorage.setItem === 'function'
+    );
+  }
+
   /**
    * Stores an item with a time-to-live (TTL) in milliseconds
    */
@@ -19,9 +27,9 @@ export class OfflineStorageCache {
 
     const serialized = JSON.stringify(item);
 
-    if (typeof localStorage !== 'undefined') {
+    if (this.isBrowserStorageAvailable()) {
       try {
-        localStorage.setItem(`agriflow_cache_${key}`, serialized);
+        window.localStorage.setItem(`agriflow_cache_${key}`, serialized);
         return;
       } catch (err) {
         console.warn('LocalStorage write failed, using memory fallback', err);
@@ -38,9 +46,9 @@ export class OfflineStorageCache {
     const storageKey = `agriflow_cache_${key}`;
     let serialized: string | null = null;
 
-    if (typeof localStorage !== 'undefined') {
+    if (this.isBrowserStorageAvailable()) {
       try {
-        serialized = localStorage.getItem(storageKey);
+        serialized = window.localStorage.getItem(storageKey);
       } catch {
         serialized = null;
       }
@@ -66,26 +74,26 @@ export class OfflineStorageCache {
 
   remove(key: string): void {
     const storageKey = `agriflow_cache_${key}`;
-    if (typeof localStorage !== 'undefined') {
+    if (this.isBrowserStorageAvailable()) {
       try {
-        localStorage.removeItem(storageKey);
+        window.localStorage.removeItem(storageKey);
       } catch {}
     }
     this.memoryFallback.delete(storageKey);
   }
 
   clear(): void {
-    if (typeof localStorage !== 'undefined') {
+    if (this.isBrowserStorageAvailable()) {
       try {
         const keysToRemove: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const key = window.localStorage.key(i);
           if (key?.startsWith('agriflow_cache_')) {
             keysToRemove.push(key);
           }
         }
         for (const k of keysToRemove) {
-          localStorage.removeItem(k);
+          window.localStorage.removeItem(k);
         }
       } catch {}
     }
