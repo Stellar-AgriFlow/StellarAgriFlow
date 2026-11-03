@@ -238,6 +238,45 @@ impl CollateralLiquidationContract {
         Ok((debt_recovered, surplus_refund))
     }
 
+    pub fn cancel_auction(
+        env: Env,
+        admin: Address,
+        auction_id: u64,
+    ) -> Result<(), LiquidationError> {
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(LiquidationError::NotInitialized)?;
+
+        if admin != stored_admin {
+            return Err(LiquidationError::Unauthorized);
+        }
+        admin.require_auth();
+
+        let mut auction: CollateralAuction = env
+            .storage()
+            .instance()
+            .get(&DataKey::Auction(auction_id))
+            .ok_or(LiquidationError::AuctionNotFound)?;
+
+        if auction.status != AuctionStatus::Active {
+            return Err(LiquidationError::AuctionNotActive);
+        }
+
+        auction.status = AuctionStatus::Cancelled;
+        env.storage()
+            .instance()
+            .set(&DataKey::Auction(auction_id), &auction);
+
+        env.events().publish(
+            (symbol_short!("auction"), symbol_short!("cancel")),
+            auction_id,
+        );
+
+        Ok(())
+    }
+
     pub fn get_auction(env: Env, auction_id: u64) -> Result<CollateralAuction, LiquidationError> {
         env.storage()
             .instance()
