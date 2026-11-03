@@ -37,6 +37,7 @@ impl CooperativeVaultContract {
         admin.require_auth();
 
         storage::set_paused(&env, paused);
+        env.events().publish((symbol_short!("coop"), symbol_short!("paused")), paused);
         Ok(())
     }
 
