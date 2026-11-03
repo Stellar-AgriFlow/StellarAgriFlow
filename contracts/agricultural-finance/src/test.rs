@@ -101,6 +101,30 @@ fn test_financing_lifecycle() {
 }
 
 #[test]
+fn test_paused_circuit_breaker() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let registry_id = env.register(MockRegistryContract, ());
+    let rep_id = env.register(MockReputationContract, ());
+
+    let finance_id = env.register(AgriculturalFinanceContract, ());
+    let client = AgriculturalFinanceContractClient::new(&env, &finance_id);
+
+    let admin = Address::generate(&env);
+    let _farmer = Address::generate(&env);
+
+    client.init(&admin, &registry_id, &rep_id);
+    assert_eq!(client.is_paused(), false);
+
+    client.set_paused(&admin, &true);
+    assert_eq!(client.is_paused(), true);
+
+    client.set_paused(&admin, &false);
+    assert_eq!(client.is_paused(), false);
+}
+
+#[test]
 fn test_drought_forbearance_extension() {
     let env = Env::default();
     env.mock_all_auths();
@@ -154,7 +178,7 @@ fn test_financing_invalid_farm_id() {
     let client = AgriculturalFinanceContractClient::new(&env, &finance_id);
 
     let admin = Address::generate(&env);
-    let farmer = Address::generate(&env);
+    let _farmer = Address::generate(&env);
 
     client.init(&admin, &registry_id, &rep_id);
 

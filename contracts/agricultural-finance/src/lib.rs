@@ -33,6 +33,7 @@ pub enum DataKey {
     WeatherOracleContract,
     FinancingCount,
     Financing(u32),
+    Paused,
 }
 
 #[contract]
@@ -58,6 +59,7 @@ impl AgriculturalFinanceContract {
             .instance()
             .set(&DataKey::ReputationContract, &reputation_contract);
         env.storage().instance().set(&DataKey::FinancingCount, &0u32);
+        env.storage().instance().set(&DataKey::Paused, &false);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
@@ -96,6 +98,27 @@ impl AgriculturalFinanceContract {
         );
     }
 
+    pub fn set_paused(env: Env, admin: Address, paused: bool) {
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Not initialized");
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            panic!("Unauthorized admin");
+        }
+        env.storage().instance().set(&DataKey::Paused, &paused);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.events().publish((symbol_short!("paused"),), paused);
+    }
+
+    pub fn is_paused(env: Env) -> bool {
+        env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
+    }
+
     pub fn create_financing_request(
         env: Env,
         farmer: Address,
@@ -105,6 +128,9 @@ impl AgriculturalFinanceContract {
         purpose: Symbol,
         duration_days: u32,
     ) -> u32 {
+        if Self::is_paused(env.clone()) {
+            panic!("Contract is paused");
+        }
         farmer.require_auth();
 
         if requested_amount <= 0 {
@@ -172,6 +198,9 @@ impl AgriculturalFinanceContract {
     }
 
     pub fn fund_request(env: Env, funder: Address, request_id: u32) {
+        if Self::is_paused(env.clone()) {
+            panic!("Contract is paused");
+        }
         funder.require_auth();
         let mut req = Self::get_financing(env.clone(), request_id);
 
