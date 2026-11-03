@@ -1,0 +1,35 @@
+# Deterministic Soroban Smart Contract Builder
+FROM rust:1.80-slim-bullseye AS builder
+
+WORKDIR /build
+
+# Install compilation prerequisites
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add Wasm target
+RUN rustup target add wasm32-unknown-unknown
+
+# Copy Cargo configurations and manifests
+COPY contracts/Cargo.toml contracts/Cargo.lock ./contracts/
+COPY contracts/agricultural-escrow/Cargo.toml ./contracts/agricultural-escrow/
+COPY contracts/agricultural-finance/Cargo.toml ./contracts/agricultural-finance/
+COPY contracts/agricultural-marketplace/Cargo.toml ./contracts/agricultural-marketplace/
+COPY contracts/agricultural-reputation/Cargo.toml ./contracts/agricultural-reputation/
+COPY contracts/farm-registry/Cargo.toml ./contracts/farm-registry/
+COPY contracts/warehouse-receipt/Cargo.toml ./contracts/warehouse-receipt/
+COPY contracts/parametric-insurance/Cargo.toml ./contracts/parametric-insurance/
+
+# Copy contract source codes
+COPY contracts/ ./contracts/
+
+# Build optimized WASM binaries
+RUN cargo build --manifest-path contracts/Cargo.toml --target wasm32-unknown-unknown --release
+
+# Output stage
+FROM scratch AS artifacts
+COPY --from=builder /build/contracts/target/wasm32-unknown-unknown/release/*.wasm /
