@@ -7,6 +7,7 @@ import { ProposalCard } from '../../components/cooperative/ProposalCard';
 import { CreateProposalModal } from '../../components/cooperative/CreateProposalModal';
 import { DepositSavingsModal } from '../../components/cooperative/DepositSavingsModal';
 import { WithdrawSavingsModal } from '../../components/cooperative/WithdrawSavingsModal';
+import { DividendDistributionModal } from '../../components/cooperative/DividendDistributionModal';
 
 const MOCK_PROPOSALS: BulkProcurementProposal[] = [
   {
@@ -49,9 +50,16 @@ export default function CooperativeDashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [isDividendOpen, setIsDividendOpen] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number>(10000);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'executed'>('all');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  const handleDistributeDividends = async (totalPool: number) => {
+    setTreasuryBalance((prev) => Math.max(0, prev - totalPool));
+    setActionNotice(`Successfully disbursed ${totalPool.toLocaleString()} USDC in batch dividends to all active cooperative stakers.`);
+    setTimeout(() => setActionNotice(null), 5000);
+  };
 
   const handleDeposit = async (amount: number) => {
     setWalletBalance((prev) => Math.max(0, prev - amount));
@@ -144,6 +152,12 @@ export default function CooperativeDashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsDividendOpen(true)}
+              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-amber-950 transition"
+            >
+              Distribute Dividends
+            </button>
             <button
               onClick={() => setIsModalOpen(true)}
               className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-emerald-950 transition"
@@ -287,6 +301,14 @@ export default function CooperativeDashboardPage() {
           onClose={() => setIsWithdrawOpen(false)}
           onWithdraw={handleWithdraw}
           stakedBalance={userSavings}
+        />
+
+        {/* Dividend Distribution Modal */}
+        <DividendDistributionModal
+          isOpen={isDividendOpen}
+          onClose={() => setIsDividendOpen(false)}
+          onDistribute={handleDistributeDividends}
+          treasuryBalance={treasuryBalance}
         />
       </div>
     </div>
