@@ -6,3 +6,4 @@ export * from './horizon';
 export * from './transaction';
 export * from './sep10';
 export * from './sep38';
+export * from './sep24';
