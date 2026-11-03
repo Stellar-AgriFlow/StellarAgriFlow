@@ -9,3 +9,4 @@ export * from './insurance';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
+export * from './txHistoryParser';
