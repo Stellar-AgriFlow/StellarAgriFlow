@@ -8,3 +8,4 @@ export * from './sep10';
 export * from './sep38';
 export * from './sep24';
 export * from './sep01';
+export * from './keyManager';
