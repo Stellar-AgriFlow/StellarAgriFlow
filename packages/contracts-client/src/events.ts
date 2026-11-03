@@ -59,4 +59,50 @@ export class SorobanEventParser {
       id: rawEvent.id,
     };
   }
+
+  /**
+   * Identifies and parses cooperative vault events
+   */
+  static parseCooperativeEvent(event: ParsedSorobanEvent): {
+    type: 'mbr_add' | 'deposit' | 'withdraw' | 'prop_new' | 'voted' | 'executed' | 'paused' | 'unknown';
+    payload: any;
+  } {
+    if (event.topic !== 'coop') {
+      return { type: 'unknown', payload: event.data };
+    }
+
+    switch (event.subTopic) {
+      case 'mbr_add':
+        return { type: 'mbr_add', payload: { member: event.data } };
+      case 'deposit':
+        return {
+          type: 'deposit',
+          payload: Array.isArray(event.data)
+            ? { member: event.data[0], amount: event.data[1] }
+            : event.data,
+        };
+      case 'withdraw':
+        return {
+          type: 'withdraw',
+          payload: Array.isArray(event.data)
+            ? { member: event.data[0], amount: event.data[1] }
+            : event.data,
+        };
+      case 'prop_new':
+        return { type: 'prop_new', payload: { proposalId: Number(event.data) } };
+      case 'voted':
+        return {
+          type: 'voted',
+          payload: Array.isArray(event.data)
+            ? { proposalId: Number(event.data[0]), votesFor: Number(event.data[1]) }
+            : event.data,
+        };
+      case 'executed':
+        return { type: 'executed', payload: { proposalId: Number(event.data) } };
+      case 'paused':
+        return { type: 'paused', payload: { isPaused: Boolean(event.data) } };
+      default:
+        return { type: 'unknown', payload: event.data };
+    }
+  }
 }
