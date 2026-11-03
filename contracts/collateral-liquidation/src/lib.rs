@@ -409,4 +409,35 @@ mod test {
         let auction = client.get_auction(&auction_id);
         assert_eq!(auction.status, AuctionStatus::Cancelled);
     }
+
+    #[test]
+    fn test_expired_auction_rejection() {
+        let env = Env::default();
+        env.mock_all_auths();
+        env.ledger().set_timestamp(1000);
+
+        let contract_id = env.register(CollateralLiquidationContract, ());
+        let client = CollateralLiquidationContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let borrower = Address::generate(&env);
+        let buyer = Address::generate(&env);
+
+        client.initialize(&admin);
+        let auction_id = client.start_auction(
+            &admin,
+            &borrower,
+            &104u64,
+            &3000i128,
+            &5000i128,
+            &2500i128,
+            &200u64, // 200s duration
+        );
+
+        // Fast forward 300s (past expiration)
+        env.ledger().set_timestamp(1301);
+
+        let buy_res = client.try_buy_collateral(&buyer, &auction_id, &2500i128);
+        assert!(buy_res.is_err());
+    }
 }
