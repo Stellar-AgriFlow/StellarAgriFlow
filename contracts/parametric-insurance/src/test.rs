@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::Address as _, Env};
+use soroban_sdk::{testutils::{Address as _, Ledger as _}, Env};
 
 #[contract]
 pub struct MockWeatherOracle;
@@ -146,4 +146,38 @@ fn test_trigger_policy_payout() {
     // Second trigger should fail
     let double_claim = client.try_trigger_policy_payout(&farmer, &policy_id);
     assert_eq!(double_claim.err(), Some(Ok(InsuranceError::PolicyAlreadyPaid)));
+}
+
+#[test]
+fn test_expire_policy() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let oracle_id = env.register(MockWeatherOracle, ());
+
+    let contract_id = env.register(ParametricInsuranceContract, ());
+    let client = ParametricInsuranceContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let lp = Address::generate(&env);
+    let farmer = Address::generate(&env);
+
+    client.initialize(&admin, &oracle_id);
+    client.deposit_liquidity(&lp, &10_000_0000);
+
+    let policy_id = client.purchase_policy(
+        &farmer,
+        &Symbol::new(&env, "KE_RIFT"),
+        &80,
+        &2_000_0000,
+        &60,
+    );
+
+    // Fast-forward 61 days
+    env.ledger().set_timestamp(env.ledger().timestamp() + 61 * 86400);
+
+    client.expire_policy(&farmer, &policy_id);
+    let expired = client.get_policy(&policy_id);
+    assert_eq!(expired.is_expired, true);
+    assert_eq!(expired.is_paid, false);
 }

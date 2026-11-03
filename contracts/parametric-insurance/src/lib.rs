@@ -308,6 +308,41 @@ impl ParametricInsuranceContract {
         Ok(policy.payout_amount)
     }
 
+    /// Expire policy once coverage duration elapses without a disaster trigger
+    pub fn expire_policy(
+        env: Env,
+        caller: Address,
+        policy_id: u32,
+    ) -> Result<(), InsuranceError> {
+        caller.require_auth();
+        let mut policy = Self::get_policy(env.clone(), policy_id)?;
+
+        if policy.is_paid {
+            return Err(InsuranceError::PolicyAlreadyPaid);
+        }
+        if policy.is_expired {
+            return Err(InsuranceError::PolicyExpired);
+        }
+
+        let duration_seconds = (policy.duration_days as u64) * 86400;
+        if env.ledger().timestamp() < policy.created_at + duration_seconds {
+            return Err(InsuranceError::Unauthorized);
+        }
+
+        policy.is_expired = true;
+        env.storage().persistent().set(&DataKey::Policy(policy_id), &policy);
+
+        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(&DataKey::Policy(policy_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (symbol_short!("pol_exp"), policy_id),
+            caller,
+        );
+
+        Ok(())
+    }
+
     pub fn get_user_shares(env: Env, user: Address) -> i128 {
         env.storage().persistent().get(&DataKey::Shares(user)).unwrap_or(0)
     }
