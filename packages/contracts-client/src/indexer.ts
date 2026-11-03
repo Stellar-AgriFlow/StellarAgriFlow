@@ -67,4 +67,57 @@ export class EventStreamIndexer {
   getCacheSize(): number {
     return this.eventCache.size;
   }
+
+  /**
+   * Retrieves cooperative-specific events
+   */
+  getCooperativeEvents(subTopicFilter?: string): ParsedSorobanEvent[] {
+    const coopEvents = this.getRecentEvents('coop');
+    if (subTopicFilter) {
+      return coopEvents.filter((e) => e.subTopic === subTopicFilter);
+    }
+    return coopEvents;
+  }
+
+  /**
+   * Reconstructs registered cooperative members list from indexed events
+   */
+  getCooperativeMembers(): string[] {
+    const memberEvents = this.getCooperativeEvents('mbr_add');
+    const members = new Set<string>();
+    for (const ev of memberEvents) {
+      const parsed = SorobanEventParser.parseCooperativeEvent(ev);
+      if (parsed.payload?.member) {
+        members.add(parsed.payload.member);
+      }
+    }
+    return Array.from(members);
+  }
+
+  /**
+   * Reconstructs aggregate treasury deposits, withdrawals, and balance
+   */
+  getCooperativeTreasuryEstimate(): {
+    totalDeposits: number;
+    totalWithdrawals: number;
+    netTreasury: number;
+  } {
+    let totalDeposits = 0;
+    let totalWithdrawals = 0;
+
+    for (const ev of this.getRecentEvents('coop')) {
+      const parsed = SorobanEventParser.parseCooperativeEvent(ev);
+      if (parsed.type === 'deposit' && parsed.payload?.amount) {
+        totalDeposits += Number(parsed.payload.amount);
+      } else if (parsed.type === 'withdraw' && parsed.payload?.amount) {
+        totalWithdrawals += Number(parsed.payload.amount);
+      }
+    }
+
+    return {
+      totalDeposits,
+      totalWithdrawals,
+      netTreasury: Math.max(0, totalDeposits - totalWithdrawals),
+    };
+  }
 }
