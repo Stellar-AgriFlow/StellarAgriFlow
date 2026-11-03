@@ -76,3 +76,38 @@ fn test_unauthorized_buyer_release() {
     // Attacker tries to release funds
     client.release_funds(&attacker, &escrow_id);
 }
+
+#[test]
+fn test_escrow_inspection_workflow() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let rep_contract_id = env.register(MockReputationContract, ());
+    let escrow_contract_id = env.register(AgriculturalEscrowContract, ());
+    let client = AgriculturalEscrowContractClient::new(&env, &escrow_contract_id);
+
+    let admin = Address::generate(&env);
+    let buyer = Address::generate(&env);
+    let seller = Address::generate(&env);
+    let inspector = Address::generate(&env);
+
+    client.init(&admin, &rep_contract_id);
+    let escrow_id = client.create_escrow(&buyer, &buyer, &seller, &15, &1200_000_0000);
+    client.fund_escrow(&buyer, &escrow_id);
+
+    // Assign certified inspector
+    client.assign_inspector(&buyer, &escrow_id, &inspector);
+    let assigned = client.get_escrow(&escrow_id);
+    assert_eq!(assigned.inspector, Some(inspector.clone()));
+
+    // Inspector verifies quality of agricultural consignment
+    client.approve_inspection(&inspector, &escrow_id);
+    let inspected = client.get_escrow(&escrow_id);
+    assert_eq!(inspected.status, 5); // InspectionApproved
+    assert_eq!(inspected.inspection_passed, true);
+
+    // Buyer releases payment
+    client.release_funds(&buyer, &escrow_id);
+    let released = client.get_escrow(&escrow_id);
+    assert_eq!(released.status, 2); // Released
+}

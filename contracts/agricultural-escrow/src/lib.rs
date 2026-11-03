@@ -15,9 +15,11 @@ pub struct EscrowRecord {
     pub seller: Address,
     pub listing_id: u32,
     pub amount: i128,
-    pub status: u32, // 0 = Created, 1 = Funded, 2 = Released, 3 = Refunded, 4 = Disputed
+    pub status: u32, // 0 = Created, 1 = Funded, 2 = Released, 3 = Refunded, 4 = Disputed, 5 = InspectionApproved
     pub created_at: u64,
     pub released_at: u64,
+    pub inspector: Option<Address>,
+    pub inspection_passed: bool,
 }
 
 #[contracttype]
@@ -77,6 +79,8 @@ impl AgriculturalEscrowContract {
             status: 0, // Created
             created_at: env.ledger().timestamp(),
             released_at: 0,
+            inspector: None,
+            inspection_passed: false,
         };
 
         env.storage().instance().set(&DataKey::Escrow(count), &escrow);
@@ -120,6 +124,50 @@ impl AgriculturalEscrowContract {
         );
     }
 
+    pub fn assign_inspector(env: Env, caller: Address, escrow_id: u32, inspector: Address) {
+        caller.require_auth();
+        let mut escrow = Self::get_escrow(env.clone(), escrow_id);
+        if caller != escrow.buyer && caller != escrow.seller {
+            panic!("Only buyer or seller can assign inspector");
+        }
+        escrow.inspector = Some(inspector.clone());
+        env.storage()
+            .instance()
+            .set(&DataKey::Escrow(escrow_id), &escrow);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (Symbol::new(&env, "InspectorAssigned"), escrow_id),
+            inspector,
+        );
+    }
+
+    pub fn approve_inspection(env: Env, inspector: Address, escrow_id: u32) {
+        inspector.require_auth();
+        let mut escrow = Self::get_escrow(env.clone(), escrow_id);
+        if escrow.inspector != Some(inspector.clone()) {
+            panic!("Unauthorized inspector");
+        }
+        if escrow.status != 1 {
+            panic!("Escrow must be funded to perform inspection");
+        }
+        escrow.inspection_passed = true;
+        escrow.status = 5; // InspectionApproved
+        env.storage()
+            .instance()
+            .set(&DataKey::Escrow(escrow_id), &escrow);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (Symbol::new(&env, "InspectionApproved"), escrow_id),
+            inspector,
+        );
+    }
+
     pub fn release_funds(env: Env, buyer: Address, escrow_id: u32) {
         buyer.require_auth();
         let mut escrow = Self::get_escrow(env.clone(), escrow_id);
@@ -127,8 +175,8 @@ impl AgriculturalEscrowContract {
         if escrow.buyer != buyer {
             panic!("Unauthorized buyer");
         }
-        if escrow.status != 1 {
-            panic!("Escrow must be funded before release");
+        if escrow.status != 1 && escrow.status != 5 {
+            panic!("Escrow must be funded or inspection approved before release");
         }
 
         escrow.status = 2; // Released
