@@ -122,3 +122,39 @@ fn test_pledge_and_unpledge_collateral() {
     assert_eq!(released.is_pledged, false);
     assert_eq!(released.pledgee, None);
 }
+
+#[test]
+fn test_burn_receipt_for_redemption() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(WarehouseReceiptContract, ());
+    let client = WarehouseReceiptContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let custodian = Address::generate(&env);
+    let farmer = Address::generate(&env);
+
+    client.initialize(&admin);
+    client.add_custodian(&admin, &custodian);
+
+    let receipt_id = client.mint_receipt(
+        &custodian,
+        &farmer,
+        &Symbol::new(&env, "SILO_KANO_02"),
+        &Symbol::new(&env, "Soybeans"),
+        &15_000,
+        &Symbol::new(&env, "Grade1"),
+        &1150,
+        &2026,
+    );
+
+    // Custodian burns receipt as physical soybeans are loaded onto exporter's trucks
+    client.burn_receipt_for_redemption(&custodian, &receipt_id);
+    let redeemed = client.get_receipt(&receipt_id);
+    assert_eq!(redeemed.is_redeemed, true);
+
+    // Double redemption should fail
+    let double_err = client.try_burn_receipt_for_redemption(&custodian, &receipt_id);
+    assert_eq!(double_err.err(), Some(Ok(ReceiptError::ReceiptAlreadyRedeemed)));
+}

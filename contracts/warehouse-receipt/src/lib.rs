@@ -293,6 +293,37 @@ impl WarehouseReceiptContract {
         );
         Ok(())
     }
+
+    /// Redeem and burn receipt for physical grain collection at the warehouse
+    pub fn burn_receipt_for_redemption(
+        env: Env,
+        custodian: Address,
+        receipt_id: u32,
+    ) -> Result<(), ReceiptError> {
+        custodian.require_auth();
+        if !Self::is_custodian(env.clone(), custodian.clone()) {
+            return Err(ReceiptError::Unauthorized);
+        }
+
+        let mut receipt = Self::get_receipt(env.clone(), receipt_id)?;
+        if receipt.is_pledged {
+            return Err(ReceiptError::ReceiptAlreadyPledged);
+        }
+        if receipt.is_redeemed {
+            return Err(ReceiptError::ReceiptAlreadyRedeemed);
+        }
+
+        receipt.is_redeemed = true;
+
+        env.storage().persistent().set(&DataKey::Receipt(receipt_id), &receipt);
+        env.storage().persistent().extend_ttl(&DataKey::Receipt(receipt_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (symbol_short!("r_redeem"), receipt_id),
+            (receipt.owner, custodian, receipt.quantity_kg),
+        );
+        Ok(())
+    }
 }
 
 #[cfg(test)]
