@@ -191,3 +191,43 @@ fn test_transfer_receipt() {
     let transferred = client.get_receipt(&receipt_id);
     assert_eq!(transferred.owner, buyer);
 }
+
+#[test]
+fn test_get_receipts_by_owner() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(WarehouseReceiptContract, ());
+    let client = WarehouseReceiptContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let custodian = Address::generate(&env);
+    let farmer = Address::generate(&env);
+
+    client.initialize(&admin);
+    client.add_custodian(&admin, &custodian);
+
+    client.mint_receipt(
+        &custodian,
+        &farmer,
+        &Symbol::new(&env, "SILO_01"),
+        &Symbol::new(&env, "Maize"),
+        &10_000,
+        &Symbol::new(&env, "Grade1"),
+        &1250,
+        &2026,
+    );
+    client.mint_receipt(
+        &custodian,
+        &farmer,
+        &Symbol::new(&env, "SILO_01"),
+        &Symbol::new(&env, "Wheat"),
+        &15_000,
+        &Symbol::new(&env, "Grade2"),
+        &1300,
+        &2026,
+    );
+
+    let farmer_receipts = client.get_receipts_by_owner(&farmer);
+    assert_eq!(farmer_receipts.len(), 2);
+}

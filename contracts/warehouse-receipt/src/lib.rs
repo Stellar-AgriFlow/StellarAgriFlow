@@ -357,6 +357,20 @@ impl WarehouseReceiptContract {
         );
         Ok(())
     }
+
+    /// Retrieve all warehouse receipts belonging to a specific owner
+    pub fn get_receipts_by_owner(env: Env, owner: Address) -> Vec<WarehouseReceipt> {
+        let count = Self::get_receipt_count(env.clone());
+        let mut user_receipts: Vec<WarehouseReceipt> = Vec::new(&env);
+        for id in 1..=count {
+            if let Ok(receipt) = Self::get_receipt(env.clone(), id) {
+                if receipt.owner == owner {
+                    user_receipts.push_back(receipt);
+                }
+            }
+        }
+        user_receipts
+    }
 }
 
 #[cfg(test)]
