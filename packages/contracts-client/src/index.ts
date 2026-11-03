@@ -10,6 +10,7 @@ export * from './liquidationClient';
 export * from './cooperativeClient';
 export * from './stellarAssetClient';
 export * from './interestAccrual';
+export * from './batchPaymentEngine';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
