@@ -190,6 +190,26 @@ impl WarehouseReceiptContract {
         env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
     }
 
+    /// Verify physical grain quality compliance against international grain storage standards
+    pub fn validate_grain_quality(env: Env, moisture_percent_e2: u32, grade: Symbol) -> bool {
+        if moisture_percent_e2 > 1600 {
+            return false;
+        }
+        let g1 = Symbol::new(&env, "Grade1");
+        let g2 = Symbol::new(&env, "Grade2");
+        let g3 = Symbol::new(&env, "Grade3");
+
+        if grade == g1 {
+            moisture_percent_e2 <= 1350
+        } else if grade == g2 {
+            moisture_percent_e2 <= 1450
+        } else if grade == g3 {
+            moisture_percent_e2 <= 1600
+        } else {
+            false
+        }
+    }
+
     /// Mint a tokenized Electronic Negotiable Warehouse Receipt (e-NWR) for physical deposited commodities
     pub fn mint_receipt(
         env: Env,

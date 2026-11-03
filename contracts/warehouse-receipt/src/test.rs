@@ -267,3 +267,28 @@ fn test_warehouse_receipt_circuit_breaker() {
     client.set_paused(&admin, &false);
     assert_eq!(client.is_paused(), false);
 }
+
+#[test]
+fn test_validate_grain_quality() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(WarehouseReceiptContract, ());
+    let client = WarehouseReceiptContractClient::new(&env, &contract_id);
+
+    let g1 = Symbol::new(&env, "Grade1");
+    let g2 = Symbol::new(&env, "Grade2");
+    let g3 = Symbol::new(&env, "Grade3");
+
+    // Grade 1 requires <= 13.50% moisture
+    assert!(client.validate_grain_quality(&1300, &g1));
+    assert!(!client.validate_grain_quality(&1400, &g1));
+
+    // Grade 2 requires <= 14.50% moisture
+    assert!(client.validate_grain_quality(&1400, &g2));
+    assert!(!client.validate_grain_quality(&1500, &g2));
+
+    // Grade 3 requires <= 16.00% moisture
+    assert!(client.validate_grain_quality(&1550, &g3));
+    assert!(!client.validate_grain_quality(&1650, &g3));
+}
