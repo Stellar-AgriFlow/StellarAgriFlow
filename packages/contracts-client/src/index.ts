@@ -15,6 +15,7 @@ export * from './accountMergeRecovery';
 export * from './claimableBalanceHelper';
 export * from './liquidityPoolCalc';
 export * from './horizonHealthCheck';
+export * from './timeBoundValidator';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
