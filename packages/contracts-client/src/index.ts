@@ -6,3 +6,4 @@ export * from './marketplace';
 export * from './reputation';
 export * from './warehouse-receipt';
 export * from './insurance';
+export * from './events';
