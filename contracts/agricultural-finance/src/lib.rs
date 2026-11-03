@@ -354,6 +354,52 @@ impl AgriculturalFinanceContract {
         }
     }
 
+    /// Declare default on overdue loans beyond grace period, recording penalty on ReputationContract
+    pub fn mark_default(env: Env, caller: Address, request_id: u32) {
+        caller.require_auth();
+        let mut req = Self::get_financing(env.clone(), request_id);
+
+        if req.status != 1 && req.status != 5 {
+            panic!("Only active loans can default");
+        }
+
+        let grace_period_seconds: u64 = 7 * 86400; // 7-day grace period
+        let loan_duration_seconds: u64 = (req.duration_days as u64) * 86400;
+        let maturity_timestamp = req.funded_at + loan_duration_seconds + grace_period_seconds;
+
+        if env.ledger().timestamp() < maturity_timestamp {
+            panic!("Loan has not exceeded maturity and grace period");
+        }
+
+        req.status = 3; // Defaulted
+        env.storage()
+            .instance()
+            .set(&DataKey::Financing(request_id), &req);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        // Record reputation penalty via cross-contract call
+        if let Some(rep_contract) = env
+            .storage()
+            .instance()
+            .get::<DataKey, Address>(&DataKey::ReputationContract)
+        {
+            let args = vec![
+                &env,
+                env.current_contract_address().into_val(&env),
+                req.farmer.clone().into_val(&env),
+                Symbol::new(&env, "default").into_val(&env),
+            ];
+            let _: u32 = env.invoke_contract(&rep_contract, &Symbol::new(&env, "record_activity"), args);
+        }
+
+        env.events().publish(
+            (Symbol::new(&env, "LoanDefaulted"), request_id),
+            (req.farmer, req.expected_repayment),
+        );
+    }
+
     pub fn record_repayment(env: Env, farmer: Address, request_id: u32) {
         farmer.require_auth();
         let mut req = Self::get_financing(env.clone(), request_id);

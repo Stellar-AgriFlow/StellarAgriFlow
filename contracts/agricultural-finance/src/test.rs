@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::Address as _, Env};
+use soroban_sdk::{testutils::{Address as _, Ledger as _}, Env};
 
 #[contract]
 pub struct MockRegistryContract;
@@ -183,6 +183,41 @@ fn test_collateral_valuation_via_oracle() {
     // MockPriceFeed returns 442 cents/bushel. For 100 bushels: 44200
     let valuation = client.calculate_collateral_value(&commodity, &100);
     assert_eq!(valuation, 44200);
+}
+
+#[test]
+fn test_mark_default_after_grace_period() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let registry_id = env.register(MockRegistryContract, ());
+    let rep_id = env.register(MockReputationContract, ());
+
+    let finance_id = env.register(AgriculturalFinanceContract, ());
+    let client = AgriculturalFinanceContractClient::new(&env, &finance_id);
+
+    let admin = Address::generate(&env);
+    let farmer = Address::generate(&env);
+    let funder = Address::generate(&env);
+
+    client.init(&admin, &registry_id, &rep_id);
+
+    let req_id = client.create_financing_request(
+        &farmer,
+        &Symbol::new(&env, "AGRI_000001"),
+        &500_000_0000,
+        &550_000_0000,
+        &Symbol::new(&env, "Fertilizer"),
+        &30,
+    );
+    client.fund_request(&funder, &req_id);
+
+    // Fast forward ledger timestamp beyond 30 days + 7 days grace = 37 days (3,196,800 seconds)
+    env.ledger().set_timestamp(env.ledger().timestamp() + 38 * 86400);
+
+    client.mark_default(&funder, &req_id);
+    let req = client.get_financing(&req_id);
+    assert_eq!(req.status, 3); // Defaulted
 }
 
 #[test]
