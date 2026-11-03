@@ -220,3 +220,29 @@ fn test_farm_certification_expiry() {
     env.ledger().set_timestamp(1700000000 + 366 * 86400);
     assert!(!client.has_valid_certification(&farm_id, &fair_trade));
 }
+
+#[test]
+fn test_update_yield_forecast() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(FarmRegistryContract, ());
+    let client = FarmRegistryContractClient::new(&env, &contract_id);
+
+    let farmer = Address::generate(&env);
+    let farm_id = client.register_farm(
+        &farmer,
+        &String::from_str(&env, "Zambia"),
+        &String::from_str(&env, "Lusaka"),
+        &String::from_str(&env, "Maize"),
+        &50,
+        &150,
+    );
+
+    let new_crop = String::from_str(&env, "Soybeans");
+    client.update_yield_forecast(&farmer, &farm_id, &new_crop, &220);
+
+    let updated = client.get_farm(&farm_id).unwrap();
+    assert_eq!(updated.crop, new_crop);
+    assert_eq!(updated.expected_yield_tons, 220);
+}

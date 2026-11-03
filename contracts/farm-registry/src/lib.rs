@@ -270,6 +270,44 @@ impl FarmRegistryContract {
     pub fn get_certification(env: Env, farm_id: String, cert_type: Symbol) -> Option<FarmCertification> {
         env.storage().persistent().get(&DataKey::FarmCertification(farm_id, cert_type))
     }
+
+    pub fn update_yield_forecast(
+        env: Env,
+        owner: Address,
+        farm_id: String,
+        new_crop: String,
+        new_expected_yield_tons: u32,
+    ) -> Result<(), FarmError> {
+        owner.require_auth();
+        if new_expected_yield_tons == 0 {
+            return Err(FarmError::InvalidInput);
+        }
+
+        let mut passport: FarmPassport = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Farm(farm_id.clone()))
+            .ok_or(FarmError::NotFound)?;
+
+        if passport.owner != owner {
+            return Err(FarmError::NotAuthorized);
+        }
+
+        passport.crop = new_crop.clone();
+        passport.expected_yield_tons = new_expected_yield_tons;
+
+        env.storage().persistent().set(&DataKey::Farm(farm_id.clone()), &passport);
+        env.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Farm(farm_id.clone()), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (Symbol::new(&env, "YieldForecastUpdated"), farm_id),
+            (new_crop, new_expected_yield_tons),
+        );
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
