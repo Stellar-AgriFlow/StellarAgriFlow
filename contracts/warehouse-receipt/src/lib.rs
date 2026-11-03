@@ -78,6 +78,95 @@ impl WarehouseReceiptContract {
     pub fn get_receipt_count(env: Env) -> u32 {
         env.storage().instance().get(&DataKey::ReceiptCount).unwrap_or(0)
     }
+
+    /// Authorize a licensed warehouse custodian / grain elevator operator
+    pub fn add_custodian(env: Env, admin: Address, custodian: Address) -> Result<(), ReceiptError> {
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(ReceiptError::NotInitialized)?;
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            return Err(ReceiptError::Unauthorized);
+        }
+
+        let mut custodians: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&DataKey::Custodians)
+            .unwrap_or(Vec::new(&env));
+
+        for c in custodians.iter() {
+            if c == custodian {
+                return Ok(());
+            }
+        }
+
+        custodians.push_back(custodian.clone());
+        env.storage().instance().set(&DataKey::Custodians, &custodians);
+        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish((symbol_short!("cust_add"),), custodian);
+        Ok(())
+    }
+
+    /// Remove a licensed warehouse custodian
+    pub fn remove_custodian(env: Env, admin: Address, custodian: Address) -> Result<(), ReceiptError> {
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(ReceiptError::NotInitialized)?;
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            return Err(ReceiptError::Unauthorized);
+        }
+
+        let custodians: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&DataKey::Custodians)
+            .unwrap_or(Vec::new(&env));
+
+        let mut updated: Vec<Address> = Vec::new(&env);
+        for c in custodians.iter() {
+            if c != custodian {
+                updated.push_back(c);
+            }
+        }
+
+        env.storage().instance().set(&DataKey::Custodians, &updated);
+        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish((symbol_short!("cust_rm"),), custodian);
+        Ok(())
+    }
+
+    /// Check if an address is an authorized custodian
+    pub fn is_custodian(env: Env, address: Address) -> bool {
+        let custodians: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&DataKey::Custodians)
+            .unwrap_or(Vec::new(&env));
+        for c in custodians.iter() {
+            if c == address {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Returns the total number of authorized warehouse custodians
+    pub fn get_custodians_count(env: Env) -> u32 {
+        let custodians: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&DataKey::Custodians)
+            .unwrap_or(Vec::new(&env));
+        custodians.len()
+    }
 }
 
 #[cfg(test)]
