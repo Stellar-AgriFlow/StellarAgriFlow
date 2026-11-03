@@ -1,51 +1,89 @@
-# AgriFlow Technical Architecture
+# Stellar-AgriFlow: System Architecture & Technical Specification
 
-This document details the architectural decisions and system design of the AgriFlow protocol.
+## 1. Executive Protocol Overview
+**Stellar-AgriFlow** is an end-to-end decentralized agricultural trade, financing, and parametric insurance infrastructure built natively on the **Stellar Network** and **Soroban smart contract platform**. 
 
-## Monorepo Strategy
+The protocol bridges rural smallholder farmers, licensed grain warehouse custodians, commodity buyers, and decentralized liquidity providers to eliminate financial exclusion and reduce systemic climate volatility.
 
-AgriFlow utilizes a modern Turborepo workspace managed by PNPM:
-
-```text
-StellarAgriFlow/
-├── apps/
-│   └── web/            # Next.js 14 frontend application
-└── packages/
-    ├── config/         # Shared Tailwind preset and tsconfig definitions
-    ├── types/          # Domain types for wallet, payments, and networks
-    ├── stellar/        # Stellar SDK wrapper, Horizon queries, transaction builders
-    └── ui/             # Reusable UI component library (design system)
+```
++---------------------------------------------------------------------------------------+
+|                                    Stellar-AgriFlow Web DApp                           |
+|      (Next.js 14, TypeScript, TailwindCSS, Freighter/xBull/Albedo/Passkey Wallet)      |
++---------------------------------------------------------------------------------------+
+                                           |
+                                           v
++---------------------------------------------------------------------------------------+
+|                               Stellar & SEP Integration Layer                         |
+|   SEP-10 (WebAuth) | SEP-24 (Interactive Ramp) | SEP-38 (Anchor Quotes) | SEP-01 TOML  |
++---------------------------------------------------------------------------------------+
+                                           |
+                                           v
++---------------------------------------------------------------------------------------+
+|                               Soroban Smart Contracts Suite                           |
+|                                                                                       |
+|  [Farm Registry] <=======> [Agricultural Reputation] <=======> [Agricultural Finance]  |
+|         ^                                                              ^              |
+|         |                                                              |              |
+|         v                                                              v              |
+|  [Marketplace]   <=======>  [Agricultural Escrow]   <=======> [Warehouse Receipt RWA] |
+|                                                                        ^              |
+|  [Parametric Insurance Pool] <=========================================+              |
++---------------------------------------------------------------------------------------+
+                                           ^
+                                           | Cross-Contract Calls & Ingestion
+                                           v
++---------------------------------------------------------------------------------------+
+|                              AgriFlow Oracle Network                                  |
+|         [Commodity Price Feed (TWAP)]  |  [Parametric Weather Risk Oracle]            |
++---------------------------------------------------------------------------------------+
 ```
 
-### Rationale
-- **Isolation of Concerns**: UI components (`packages/ui`) have zero coupling to blockchain dependencies.
-- **Blockchain Abstraction**: `@agriflow/stellar` contains all Horizon client logic and transaction construction. If network endpoints or SDK interfaces evolve, only this package is updated.
-- **Extensibility for Phase 2**: The structure permits the introduction of `@agriflow/contracts`, `@agriflow/contracts-client`, and event indexing services without architectural refactoring.
+---
 
-## Wallet Abstraction Layer
+## 2. Smart Contract Architecture
 
-The application interacts with wallets through the `IWalletAdapter` interface:
+The protocol is composed of seven interconnected Soroban contracts:
 
-```typescript
-export interface IWalletAdapter {
-  id: string;
-  name: string;
-  isAvailable(): Promise<boolean>;
-  connect(): Promise<string>;
-  disconnect(): Promise<void>;
-  getPublicKey(): Promise<string>;
-  signTransaction(xdr: string, opts?: { networkPassphrase?: string }): Promise<string>;
-}
-```
+1. **`farm-registry`**:
+   - Geolocation validation (GPS latitude/longitude bounding box).
+   - Agricultural certification registries (GlobalGAP, Organic, FairTrade) with validity expiration.
+   - Seasonal yield projections and historical harvest tracking.
 
-This interface enables future wallet providers (StellarWalletsKit, Albedo, xBull, WalletConnect) to be plugged in seamlessly.
+2. **`agricultural-reputation`**:
+   - Non-linear credit scoring engine based on on-chain loan repayment velocity.
+   - Automated tier categorization (`Bronze`, `Silver`, `Gold`, `Platinum`, `Diamond`).
+   - Slashed penalties on loan defaults and escrow dispute faults.
 
-## Horizon Balance & Reserve Mechanics
+3. **`agricultural-finance`**:
+   - Working capital microloans for smallholder farmers.
+   - Collateralized loan underwriting utilizing RWA warehouse receipts.
+   - Forbearance extensions and mutual restructuring for drought and flood events.
 
-Stellar protocol enforces a minimum account reserve to prevent ledger spam:
-$$\text{Required Reserve} = (2 + \text{subentryCount}) \times 0.5\text{ XLM}$$
+4. **`agricultural-escrow`**:
+   - Multi-party inspection-gated trade settlement.
+   - Dual-signature release (certified agricultural inspector + buyer).
+   - Timelocked automated dispute resolution and refund mechanisms.
 
-The spendable balance calculation is performed as:
-$$\text{Spendable XLM} = \max(0, \text{totalXLM} - \text{Required Reserve} - \text{Fee Buffer})$$
+5. **`agricultural-marketplace`**:
+   - Spot commodity orderbook and direct purchase settlement.
+   - Automated volume-tiered wholesale discounting.
+   - Perishable crop shelf-life expiration enforcement.
 
-This ensures users never submit transactions that fail with `op_underfunded` due to ledger reserve locks.
+6. **`warehouse-receipt` (RWA standard)**:
+   - Electronic Negotiable Warehouse Receipts (`e-NWR`) minting with grain moisture validation (<= 14.0%).
+   - Lien and collateral pledging for DeFi microloan underwriting.
+   - Token burning upon physical harvest release.
+
+7. **`parametric-insurance`**:
+   - Decentralized risk capital liquidity pool with LP share tokenization.
+   - Direct cross-contract queries to `WeatherRiskOracle` for automated claims.
+   - Zero-claim duration expiration and capital reserve recovery.
+
+---
+
+## 3. Stellar Ecosystem Standards (SEPs)
+
+- **SEP-0001 (`stellar.toml`)**: Public discovery metadata defining protocol accounts, contract addresses, and documentation.
+- **SEP-0010 (`Stellar Web Authentication`)**: Cryptographic challenge transaction authentication for user sessions.
+- **SEP-0024 (`Hosted Deposit and Withdrawal`)**: Interactive bridge enabling local mobile money (M-Pesa, MTN MoMo, Airtel) and bank transfers into Stellar USDC.
+- **SEP-0038 (`Anchor RFQ Quotes`)**: Guaranteed pricing quotes for cross-asset conversions between local fiat currencies and Stellar assets.
