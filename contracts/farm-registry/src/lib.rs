@@ -46,10 +46,20 @@ pub struct FarmCoordinates {
 }
 
 #[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FarmCertification {
+    pub cert_type: Symbol,
+    pub issuer: Address,
+    pub issued_at: u64,
+    pub expires_at: u64,
+}
+
+#[contracttype]
 pub enum DataKey {
     Farm(String),
     FarmCount,
     FarmCoordinates(String),
+    FarmCertification(String, Symbol),
 }
 
 fn format_farm_id(env: &Env, count: u32) -> String {
@@ -201,6 +211,64 @@ impl FarmRegistryContract {
 
     pub fn get_farm_coordinates(env: Env, farm_id: String) -> Option<FarmCoordinates> {
         env.storage().persistent().get(&DataKey::FarmCoordinates(farm_id))
+    }
+
+    pub fn add_certification(
+        env: Env,
+        issuer: Address,
+        farm_id: String,
+        cert_type: Symbol,
+        duration_days: u32,
+    ) -> Result<(), FarmError> {
+        issuer.require_auth();
+        if !Self::has_farm(env.clone(), farm_id.clone()) {
+            return Err(FarmError::NotFound);
+        }
+        if duration_days == 0 {
+            return Err(FarmError::InvalidInput);
+        }
+
+        let now = env.ledger().timestamp();
+        let expires_at = now + (duration_days as u64) * 86400;
+
+        let cert = FarmCertification {
+            cert_type: cert_type.clone(),
+            issuer: issuer.clone(),
+            issued_at: now,
+            expires_at,
+        };
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::FarmCertification(farm_id.clone(), cert_type.clone()), &cert);
+        env.storage().persistent().extend_ttl(
+            &DataKey::FarmCertification(farm_id.clone(), cert_type.clone()),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
+
+        env.events().publish(
+            (Symbol::new(&env, "CertificationAdded"), farm_id),
+            (cert_type, issuer, expires_at),
+        );
+
+        Ok(())
+    }
+
+    pub fn has_valid_certification(env: Env, farm_id: String, cert_type: Symbol) -> bool {
+        if let Some(cert) = env
+            .storage()
+            .persistent()
+            .get::<DataKey, FarmCertification>(&DataKey::FarmCertification(farm_id, cert_type))
+        {
+            env.ledger().timestamp() < cert.expires_at
+        } else {
+            false
+        }
+    }
+
+    pub fn get_certification(env: Env, farm_id: String, cert_type: Symbol) -> Option<FarmCertification> {
+        env.storage().persistent().get(&DataKey::FarmCertification(farm_id, cert_type))
     }
 }
 

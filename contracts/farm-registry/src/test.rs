@@ -182,3 +182,41 @@ fn test_farm_coordinates_validation() {
     assert_eq!(coords.lat_e6, -303100);
     assert_eq!(coords.lon_e6, 36080000);
 }
+
+#[test]
+fn test_farm_certification_expiry() {
+    let env = Env::default();
+    env.mock_all_auths();
+    env.ledger().set_timestamp(1700000000);
+
+    let contract_id = env.register(FarmRegistryContract, ());
+    let client = FarmRegistryContractClient::new(&env, &contract_id);
+
+    let farmer = Address::generate(&env);
+    let certifier = Address::generate(&env);
+
+    let farm_id = client.register_farm(
+        &farmer,
+        &String::from_str(&env, "Ivory Coast"),
+        &String::from_str(&env, "San Pedro"),
+        &String::from_str(&env, "Cocoa"),
+        &40,
+        &80,
+    );
+
+    let fair_trade = Symbol::new(&env, "FairTrade");
+
+    assert!(!client.has_valid_certification(&farm_id, &fair_trade));
+
+    // Certify for 365 days
+    client.add_certification(&certifier, &farm_id, &fair_trade, &365);
+    assert!(client.has_valid_certification(&farm_id, &fair_trade));
+
+    let cert = client.get_certification(&farm_id, &fair_trade).unwrap();
+    assert_eq!(cert.issuer, certifier);
+    assert_eq!(cert.expires_at, 1700000000 + 365 * 86400);
+
+    // Fast-forward past 366 days
+    env.ledger().set_timestamp(1700000000 + 366 * 86400);
+    assert!(!client.has_valid_certification(&farm_id, &fair_trade));
+}
