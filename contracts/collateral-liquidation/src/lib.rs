@@ -382,4 +382,31 @@ mod test {
         );
         assert!(res.is_err());
     }
+
+    #[test]
+    fn test_cancel_auction() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(CollateralLiquidationContract, ());
+        let client = CollateralLiquidationContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let borrower = Address::generate(&env);
+
+        client.initialize(&admin);
+        let auction_id = client.start_auction(
+            &admin,
+            &borrower,
+            &103u64,
+            &4000i128,
+            &6000i128,
+            &3000i128,
+            &600u64,
+        );
+
+        client.cancel_auction(&admin, &auction_id);
+        let auction = client.get_auction(&auction_id);
+        assert_eq!(auction.status, AuctionStatus::Cancelled);
+    }
 }
