@@ -14,6 +14,7 @@
     "contracts:build": "cargo build --manifest-path contracts/Cargo.toml --target wasm32-unknown-unknown --release"
   },
   "devDependencies": {
+    "@stellar/stellar-sdk": "^17.4.0",
     "turbo": "^2.4.4",
     "typescript": "^5.8.2",
     "vitest": "^3.0.7"

@@ -1,9 +1,7 @@
 import {
   Keypair,
-  Networks,
   Transaction,
-  TransactionBuilder,
-  Utils,
+  WebAuth,
 } from '@stellar/stellar-sdk';
 import { STELLAR_TESTNET_CONFIG } from './config';
 
@@ -11,6 +9,7 @@ export interface Sep10ChallengeConfig {
   serverKeypair: Keypair;
   networkPassphrase?: string;
   homeDomain: string;
+  webAuthDomain?: string;
   timeoutSeconds?: number;
 }
 
@@ -24,6 +23,7 @@ export class Sep10Auth {
   private serverKeypair: Keypair;
   private networkPassphrase: string;
   private homeDomain: string;
+  private webAuthDomain: string;
   private timeoutSeconds: number;
 
   constructor(config: Sep10ChallengeConfig) {
@@ -31,6 +31,7 @@ export class Sep10Auth {
     this.networkPassphrase =
       config.networkPassphrase || STELLAR_TESTNET_CONFIG.networkPassphrase;
     this.homeDomain = config.homeDomain;
+    this.webAuthDomain = config.webAuthDomain || config.homeDomain;
     this.timeoutSeconds = config.timeoutSeconds || 300; // 5 minutes validity
   }
 
@@ -38,14 +39,28 @@ export class Sep10Auth {
    * Generates a SEP-10 challenge transaction for a client account.
    */
   generateChallenge(clientPublicKey: string): string {
-    const challengeTx = Utils.buildChallengeTx(
+    const challengeTx = WebAuth.buildChallengeTx(
       this.serverKeypair,
       clientPublicKey,
       this.homeDomain,
       this.timeoutSeconds,
-      this.networkPassphrase
+      this.networkPassphrase,
+      this.webAuthDomain
     );
     return challengeTx;
+  }
+
+  /**
+   * Signs a challenge transaction on behalf of a client account.
+   */
+  static signChallenge(
+    challengeXdr: string,
+    clientKeypair: Keypair,
+    networkPassphrase: string = STELLAR_TESTNET_CONFIG.networkPassphrase
+  ): string {
+    const tx = new Transaction(challengeXdr, networkPassphrase);
+    tx.sign(clientKeypair);
+    return tx.toEnvelope().toXdr('base64').toString();
   }
 
   /**
@@ -56,19 +71,24 @@ export class Sep10Auth {
     expectedClientPublicKey: string
   ): Sep10VerificationResult {
     try {
-      const tx = new Transaction(challengeXdr, this.networkPassphrase);
-      const signers = Utils.readChallengeTx(
+      const readResult = WebAuth.readChallengeTx(
         challengeXdr,
         this.serverKeypair.publicKey(),
         this.networkPassphrase,
-        this.homeDomain
+        this.homeDomain,
+        this.webAuthDomain
       );
 
-      const clientSigned = signers.matched.some(
-        (signer: string) => signer === expectedClientPublicKey
-      );
+      if (readResult.clientAccountID !== expectedClientPublicKey) {
+        return {
+          valid: false,
+          clientAccount: expectedClientPublicKey,
+          error: `Client account ID mismatch: expected ${expectedClientPublicKey}, got ${readResult.clientAccountID}`,
+        };
+      }
 
-      if (!clientSigned) {
+      const isSigned = WebAuth.verifyTxSignedBy(readResult.tx, expectedClientPublicKey);
+      if (!isSigned) {
         return {
           valid: false,
           clientAccount: expectedClientPublicKey,
