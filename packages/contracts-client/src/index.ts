@@ -8,6 +8,7 @@ export * from './warehouse-receipt';
 export * from './insurance';
 export * from './liquidationClient';
 export * from './cooperativeClient';
+export * from './stellarAssetClient';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
