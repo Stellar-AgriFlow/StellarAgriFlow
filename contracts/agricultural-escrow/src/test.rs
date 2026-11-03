@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::Address as _, Env};
+use soroban_sdk::{testutils::{Address as _, Ledger as _}, Env};
 
 // Dummy mock reputation contract for testutils
 #[contract]
@@ -110,4 +110,35 @@ fn test_escrow_inspection_workflow() {
     client.release_funds(&buyer, &escrow_id);
     let released = client.get_escrow(&escrow_id);
     assert_eq!(released.status, 2); // Released
+}
+
+#[test]
+fn test_dispute_timeout_refund() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let rep_contract_id = env.register(MockReputationContract, ());
+    let escrow_contract_id = env.register(AgriculturalEscrowContract, ());
+    let client = AgriculturalEscrowContractClient::new(&env, &escrow_contract_id);
+
+    let admin = Address::generate(&env);
+    let buyer = Address::generate(&env);
+    let seller = Address::generate(&env);
+
+    client.init(&admin, &rep_contract_id);
+    let escrow_id = client.create_escrow(&buyer, &buyer, &seller, &99, &750_000_0000);
+    client.fund_escrow(&buyer, &escrow_id);
+
+    // Buyer raises dispute due to damaged consignment
+    client.raise_dispute(&buyer, &escrow_id);
+    let disputed = client.get_escrow(&escrow_id);
+    assert_eq!(disputed.status, 4); // Disputed
+
+    // Advance 8 days past 7-day timeout
+    env.ledger().set_timestamp(env.ledger().timestamp() + 8 * 86400);
+
+    // Buyer claims timeout refund
+    client.claim_dispute_timeout_refund(&buyer, &escrow_id);
+    let refunded = client.get_escrow(&escrow_id);
+    assert_eq!(refunded.status, 3); // Refunded
 }

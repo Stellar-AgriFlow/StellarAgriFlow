@@ -20,6 +20,7 @@ pub struct EscrowRecord {
     pub released_at: u64,
     pub inspector: Option<Address>,
     pub inspection_passed: bool,
+    pub disputed_at: u64,
 }
 
 #[contracttype]
@@ -81,6 +82,7 @@ impl AgriculturalEscrowContract {
             released_at: 0,
             inspector: None,
             inspection_passed: false,
+            disputed_at: 0,
         };
 
         env.storage().instance().set(&DataKey::Escrow(count), &escrow);
@@ -250,6 +252,62 @@ impl AgriculturalEscrowContract {
         env.events().publish(
             (Symbol::new(&env, "EscrowRefunded"), escrow_id),
             (escrow.buyer, escrow.amount),
+        );
+    }
+
+    pub fn raise_dispute(env: Env, caller: Address, escrow_id: u32) {
+        caller.require_auth();
+        let mut escrow = Self::get_escrow(env.clone(), escrow_id);
+
+        if caller != escrow.buyer && caller != escrow.seller {
+            panic!("Only buyer or seller can dispute escrow");
+        }
+        if escrow.status != 1 && escrow.status != 5 {
+            panic!("Escrow cannot be disputed in current status");
+        }
+
+        escrow.status = 4; // Disputed
+        escrow.disputed_at = env.ledger().timestamp();
+        env.storage()
+            .instance()
+            .set(&DataKey::Escrow(escrow_id), &escrow);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (Symbol::new(&env, "EscrowDisputed"), escrow_id),
+            (caller, escrow.amount),
+        );
+    }
+
+    pub fn claim_dispute_timeout_refund(env: Env, buyer: Address, escrow_id: u32) {
+        buyer.require_auth();
+        let mut escrow = Self::get_escrow(env.clone(), escrow_id);
+
+        if escrow.buyer != buyer {
+            panic!("Unauthorized buyer");
+        }
+        if escrow.status != 4 {
+            panic!("Escrow is not in disputed status");
+        }
+
+        let timeout_seconds: u64 = 7 * 86400; // 7-day dispute resolution window
+        if env.ledger().timestamp() < escrow.disputed_at + timeout_seconds {
+            panic!("Dispute resolution timeout has not elapsed");
+        }
+
+        escrow.status = 3; // Refunded
+        env.storage()
+            .instance()
+            .set(&DataKey::Escrow(escrow_id), &escrow);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (Symbol::new(&env, "DisputeTimeoutRefunded"), escrow_id),
+            (buyer, escrow.amount),
         );
     }
 
