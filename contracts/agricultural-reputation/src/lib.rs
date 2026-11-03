@@ -115,6 +115,22 @@ impl AgriculturalReputationContract {
         record.reputation_score
     }
 
+    /// Returns the credit rating tier based on verified on-chain score
+    pub fn get_credit_tier(env: Env, user: Address) -> Symbol {
+        let rep = Self::get_reputation(env.clone(), user);
+        if rep.reputation_score >= 300 {
+            Symbol::new(&env, "AAA")
+        } else if rep.reputation_score >= 200 {
+            Symbol::new(&env, "AA")
+        } else if rep.reputation_score >= 150 {
+            Symbol::new(&env, "A")
+        } else if rep.reputation_score >= 100 {
+            Symbol::new(&env, "B")
+        } else {
+            Symbol::new(&env, "C")
+        }
+    }
+
     pub fn get_reputation(env: Env, user: Address) -> ReputationData {
         if let Some(record) = env
             .storage()

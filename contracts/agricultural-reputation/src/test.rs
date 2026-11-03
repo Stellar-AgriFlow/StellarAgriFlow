@@ -66,3 +66,19 @@ fn test_unauthorized_reputation_update() {
     // Attacker tries to award themselves reputation without authorization
     client.record_activity(&attacker, &victim, &Symbol::new(&env, "trade"));
 }
+
+#[test]
+fn test_credit_tiers() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(AgriculturalReputationContract, ());
+    let client = AgriculturalReputationContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let farmer = Address::generate(&env);
+    client.init(&admin);
+
+    // Initial base score 100 -> Tier B
+    assert_eq!(client.get_credit_tier(&farmer), Symbol::new(&env, "B"));
+}
