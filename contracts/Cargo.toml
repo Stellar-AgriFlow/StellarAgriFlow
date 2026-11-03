@@ -8,6 +8,7 @@ members = [
     "agricultural-reputation",
     "warehouse-receipt",
     "parametric-insurance",
+    "collateral-liquidation",
 ]
 
 [profile.release]
