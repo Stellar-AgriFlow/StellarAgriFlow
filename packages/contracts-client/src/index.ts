@@ -4,3 +4,5 @@ export * from './finance';
 export * from './escrow';
 export * from './marketplace';
 export * from './reputation';
+export * from './warehouse-receipt';
+export * from './insurance';

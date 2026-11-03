@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { FarmRegistryClient } from '../packages/contracts-client/src/client';
+import { WarehouseReceiptClient } from '../packages/contracts-client/src/warehouse-receipt';
+import { ParametricInsuranceClient } from '../packages/contracts-client/src/insurance';
 import { FarmStatus } from '../packages/types/src/passport';
 
 describe('Soroban FarmRegistry Client Architecture', () => {
@@ -43,7 +45,6 @@ describe('Soroban FarmRegistry Client Architecture', () => {
   });
 
   it('correctly maps Soroban integer farm status to TypeScript status string', () => {
-    // 0 = Active, 1 = Suspended, 2 = Revoked
     const mapStatus = (code: number): FarmStatus => {
       switch (code) {
         case 1:
@@ -58,29 +59,32 @@ describe('Soroban FarmRegistry Client Architecture', () => {
   });
 
   it('tracks transaction states throughout the full lifecycle', () => {
-    const lifecycleStates: string[] = [];
-    const onStateChange = (state: string) => {
-      lifecycleStates.push(state);
-    };
+    const states: string[] = [];
+    const callback = (state: string) => states.push(state);
 
-    const simulatedLifecycle = [
-      'preparing',
-      'simulating',
-      'awaiting_signature',
-      'submitting',
-      'pending',
-      'confirmed',
-    ];
+    callback('signing');
+    callback('submitting');
+    callback('confirming');
+    callback('confirmed');
 
-    simulatedLifecycle.forEach((s) => onStateChange(s));
+    expect(states).toEqual(['signing', 'submitting', 'confirming', 'confirmed']);
+  });
 
-    expect(lifecycleStates).toEqual([
-      'preparing',
-      'simulating',
-      'awaiting_signature',
-      'submitting',
-      'pending',
-      'confirmed',
-    ]);
+  it('initializes WarehouseReceiptClient with valid testnet contract ID', () => {
+    const receiptClient = new WarehouseReceiptClient({
+      contractId: validContractId,
+      rpcUrl,
+      networkPassphrase,
+    });
+    expect(receiptClient.getContractId()).toBe(validContractId);
+  });
+
+  it('initializes ParametricInsuranceClient with valid testnet contract ID', () => {
+    const insuranceClient = new ParametricInsuranceClient({
+      contractId: validContractId,
+      rpcUrl,
+      networkPassphrase,
+    });
+    expect(insuranceClient.getContractId()).toBe(validContractId);
   });
 });
