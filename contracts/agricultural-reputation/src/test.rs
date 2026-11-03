@@ -82,3 +82,30 @@ fn test_credit_tiers() {
     // Initial base score 100 -> Tier B
     assert_eq!(client.get_credit_tier(&farmer), Symbol::new(&env, "B"));
 }
+
+#[test]
+fn test_reputation_penalty_slashing() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(AgriculturalReputationContract, ());
+    let client = AgriculturalReputationContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let farmer = Address::generate(&env);
+    let finance_contract = Address::generate(&env);
+
+    client.init(&admin);
+    client.add_authorized_caller(&admin, &finance_contract);
+
+    // Initial score = 100. Record default penalty (-40 points)
+    let score_after_default = client.record_activity(
+        &finance_contract,
+        &farmer,
+        &Symbol::new(&env, "default"),
+    );
+    assert_eq!(score_after_default, 60);
+
+    // Score 60 is Tier C
+    assert_eq!(client.get_credit_tier(&farmer), Symbol::new(&env, "C"));
+}

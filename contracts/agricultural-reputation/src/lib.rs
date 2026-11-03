@@ -83,6 +83,8 @@ impl AgriculturalReputationContract {
         let finance_sym = Symbol::new(&env, "finance");
         let repay_sym = Symbol::new(&env, "repay");
         let escrow_sym = Symbol::new(&env, "escrow");
+        let default_sym = Symbol::new(&env, "default");
+        let dispute_sym = Symbol::new(&env, "dispute");
 
         if activity_type == trade_sym {
             record.successful_trades += 1;
@@ -96,6 +98,18 @@ impl AgriculturalReputationContract {
         } else if activity_type == escrow_sym {
             record.completed_escrows += 1;
             record.reputation_score += 10;
+        } else if activity_type == default_sym {
+            if record.reputation_score > 40 {
+                record.reputation_score -= 40;
+            } else {
+                record.reputation_score = 0;
+            }
+        } else if activity_type == dispute_sym {
+            if record.reputation_score > 15 {
+                record.reputation_score -= 15;
+            } else {
+                record.reputation_score = 0;
+            }
         } else {
             panic!("Invalid activity type");
         }
