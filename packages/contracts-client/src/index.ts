@@ -16,6 +16,7 @@ export * from './claimableBalanceHelper';
 export * from './liquidityPoolCalc';
 export * from './horizonHealthCheck';
 export * from './timeBoundValidator';
+export * from './multiSigCoordinator';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
