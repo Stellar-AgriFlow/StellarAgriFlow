@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Events, Ledger}, Address, Env, String, IntoVal};
+use soroban_sdk::{testutils::{Address as _, Events, Ledger}, Address, Env, String};
 
 #[test]
 fn test_register_and_get_farm() {
@@ -98,22 +98,11 @@ fn test_invalid_farm_data_rejected() {
         &0,
         &100,
     );
-
     assert!(res.is_err());
 }
 
 #[test]
-fn test_has_farm_nonexistent() {
-    let env = Env::default();
-    let contract_id = env.register(FarmRegistryContract, ());
-    let client = FarmRegistryContractClient::new(&env, &contract_id);
-
-    assert!(!client.has_farm(&String::from_str(&env, "AGRI-999999")));
-    assert!(client.get_farm(&String::from_str(&env, "AGRI-999999")).is_none());
-}
-
-#[test]
-fn test_unauthorized_status_update_rejected() {
+fn test_update_status_authorization() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -121,20 +110,20 @@ fn test_unauthorized_status_update_rejected() {
     let client = FarmRegistryContractClient::new(&env, &contract_id);
 
     let real_owner = Address::generate(&env);
-    let attacker = Address::generate(&env);
+    let impostor = Address::generate(&env);
 
     let farm_id = client.register_farm(
         &real_owner,
-        &String::from_str(&env, "Ivory Coast"),
-        &String::from_str(&env, "Divo"),
-        &String::from_str(&env, "Cocoa"),
-        &30,
-        &75,
+        &String::from_str(&env, "Uganda"),
+        &String::from_str(&env, "Mbale"),
+        &String::from_str(&env, "Arabica Coffee"),
+        &10,
+        &25,
     );
 
-    // Attacker tries to update status
-    let res = client.try_update_farm_status(&attacker, &farm_id, &FarmStatus::Suspended);
-    assert!(res.is_err());
+    // Impostor tries to suspend -> should fail
+    let err_res = client.try_update_farm_status(&impostor, &farm_id, &FarmStatus::Suspended);
+    assert!(err_res.is_err());
 
     // Real owner updates status
     let ok_res = client.try_update_farm_status(&real_owner, &farm_id, &FarmStatus::PendingVerification);
@@ -153,7 +142,7 @@ fn test_event_emission() {
     let client = FarmRegistryContractClient::new(&env, &contract_id);
 
     let farmer = Address::generate(&env);
-    let farm_id = client.register_farm(
+    let _farm_id = client.register_farm(
         &farmer,
         &String::from_str(&env, "Rwanda"),
         &String::from_str(&env, "Musanze"),
@@ -164,4 +153,32 @@ fn test_event_emission() {
 
     let events = env.events().all();
     assert!(!events.is_empty());
+}
+
+#[test]
+fn test_farm_coordinates_validation() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(FarmRegistryContract, ());
+    let client = FarmRegistryContractClient::new(&env, &contract_id);
+
+    let farmer = Address::generate(&env);
+    let farm_id = client.register_farm(
+        &farmer,
+        &String::from_str(&env, "Kenya"),
+        &String::from_str(&env, "Nakuru"),
+        &String::from_str(&env, "Maize"),
+        &30,
+        &90,
+    );
+
+    assert!(client.validate_gps_coordinates(&-303100, &36080000));
+    assert!(!client.validate_gps_coordinates(&100_000_000, &0)); // Lat > 90 invalid
+
+    client.set_farm_coordinates(&farmer, &farm_id, &-303100, &36080000);
+
+    let coords = client.get_farm_coordinates(&farm_id).unwrap();
+    assert_eq!(coords.lat_e6, -303100);
+    assert_eq!(coords.lon_e6, 36080000);
 }

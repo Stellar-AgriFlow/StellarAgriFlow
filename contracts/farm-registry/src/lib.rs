@@ -39,9 +39,17 @@ pub struct FarmPassport {
 }
 
 #[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FarmCoordinates {
+    pub lat_e6: i32,
+    pub lon_e6: i32,
+}
+
+#[contracttype]
 pub enum DataKey {
     Farm(String),
     FarmCount,
+    FarmCoordinates(String),
 }
 
 fn format_farm_id(env: &Env, count: u32) -> String {
@@ -162,6 +170,37 @@ impl FarmRegistryContract {
             .extend_ttl(&DataKey::Farm(farm_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         Ok(())
+    }
+
+    /// Validates GPS coordinates (latitude in [-90, +90] e6 microdegrees, longitude in [-180, +180] e6 microdegrees)
+    pub fn validate_gps_coordinates(_env: Env, lat_e6: i32, lon_e6: i32) -> bool {
+        lat_e6 >= -90_000_000 && lat_e6 <= 90_000_000 && lon_e6 >= -180_000_000 && lon_e6 <= 180_000_000
+    }
+
+    pub fn set_farm_coordinates(
+        env: Env,
+        owner: Address,
+        farm_id: String,
+        lat_e6: i32,
+        lon_e6: i32,
+    ) -> Result<(), FarmError> {
+        owner.require_auth();
+        let passport = Self::get_farm(env.clone(), farm_id.clone()).ok_or(FarmError::NotFound)?;
+        if passport.owner != owner {
+            return Err(FarmError::NotAuthorized);
+        }
+        if !Self::validate_gps_coordinates(env.clone(), lat_e6, lon_e6) {
+            return Err(FarmError::InvalidInput);
+        }
+        let coords = FarmCoordinates { lat_e6, lon_e6 };
+        env.storage().persistent().set(&DataKey::FarmCoordinates(farm_id.clone()), &coords);
+        env.storage().persistent().extend_ttl(&DataKey::FarmCoordinates(farm_id.clone()), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.events().publish((Symbol::new(&env, "CoordinatesUpdated"), farm_id), (lat_e6, lon_e6));
+        Ok(())
+    }
+
+    pub fn get_farm_coordinates(env: Env, farm_id: String) -> Option<FarmCoordinates> {
+        env.storage().persistent().get(&DataKey::FarmCoordinates(farm_id))
     }
 }
 
