@@ -328,6 +328,32 @@ impl AgriculturalFinanceContract {
         );
     }
 
+    /// Calculate current market value of agricultural collateral against oracle price feed
+    pub fn calculate_collateral_value(
+        env: Env,
+        commodity: Symbol,
+        quantity_units: i128,
+    ) -> i128 {
+        let price_feed = env
+            .storage()
+            .instance()
+            .get::<DataKey, Address>(&DataKey::PriceFeedContract)
+            .expect("Price feed not configured");
+
+        let args = vec![&env, commodity.into_val(&env)];
+        let unit_price: i128 = env.invoke_contract(
+            &price_feed,
+            &Symbol::new(&env, "get_price"),
+            args,
+        );
+
+        if unit_price <= 0 || quantity_units <= 0 {
+            0
+        } else {
+            unit_price * quantity_units
+        }
+    }
+
     pub fn record_repayment(env: Env, farmer: Address, request_id: u32) {
         farmer.require_auth();
         let mut req = Self::get_financing(env.clone(), request_id);

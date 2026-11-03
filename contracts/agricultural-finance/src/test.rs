@@ -163,6 +163,29 @@ fn test_loan_restructuring() {
 }
 
 #[test]
+fn test_collateral_valuation_via_oracle() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let registry_id = env.register(MockRegistryContract, ());
+    let rep_id = env.register(MockReputationContract, ());
+    let price_id = env.register(MockPriceFeedContract, ());
+    let weather_id = env.register(MockWeatherOracleContract, ());
+
+    let finance_id = env.register(AgriculturalFinanceContract, ());
+    let client = AgriculturalFinanceContractClient::new(&env, &finance_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin, &registry_id, &rep_id);
+    client.set_oracle_contracts(&admin, &price_id, &weather_id);
+
+    let commodity = Symbol::new(&env, "Maize");
+    // MockPriceFeed returns 442 cents/bushel. For 100 bushels: 44200
+    let valuation = client.calculate_collateral_value(&commodity, &100);
+    assert_eq!(valuation, 44200);
+}
+
+#[test]
 fn test_drought_forbearance_extension() {
     let env = Env::default();
     env.mock_all_auths();
