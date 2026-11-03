@@ -6,6 +6,7 @@ export * from './marketplace';
 export * from './reputation';
 export * from './warehouse-receipt';
 export * from './insurance';
+export * from './liquidationClient';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
