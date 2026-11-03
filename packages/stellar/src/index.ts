@@ -11,3 +11,4 @@ export * from './sep01';
 export * from './keyManager';
 export * from './sorobanFeeEstimator';
 export * from './advancedTxBuilder';
+export * from './channelAccounts';
