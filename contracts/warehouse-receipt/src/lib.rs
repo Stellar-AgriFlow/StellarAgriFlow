@@ -324,6 +324,39 @@ impl WarehouseReceiptContract {
         );
         Ok(())
     }
+
+    /// Transfer negotiable warehouse receipt ownership to another party
+    pub fn transfer_receipt(
+        env: Env,
+        current_owner: Address,
+        receipt_id: u32,
+        new_owner: Address,
+    ) -> Result<(), ReceiptError> {
+        current_owner.require_auth();
+        let mut receipt = Self::get_receipt(env.clone(), receipt_id)?;
+
+        if receipt.owner != current_owner {
+            return Err(ReceiptError::Unauthorized);
+        }
+        if receipt.is_pledged {
+            return Err(ReceiptError::ReceiptAlreadyPledged);
+        }
+        if receipt.is_redeemed {
+            return Err(ReceiptError::ReceiptAlreadyRedeemed);
+        }
+
+        let previous_owner = receipt.owner.clone();
+        receipt.owner = new_owner.clone();
+
+        env.storage().persistent().set(&DataKey::Receipt(receipt_id), &receipt);
+        env.storage().persistent().extend_ttl(&DataKey::Receipt(receipt_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (symbol_short!("r_trans"), receipt_id),
+            (previous_owner, new_owner),
+        );
+        Ok(())
+    }
 }
 
 #[cfg(test)]

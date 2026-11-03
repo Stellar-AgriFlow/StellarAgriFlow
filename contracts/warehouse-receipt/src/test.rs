@@ -158,3 +158,36 @@ fn test_burn_receipt_for_redemption() {
     let double_err = client.try_burn_receipt_for_redemption(&custodian, &receipt_id);
     assert_eq!(double_err.err(), Some(Ok(ReceiptError::ReceiptAlreadyRedeemed)));
 }
+
+#[test]
+fn test_transfer_receipt() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(WarehouseReceiptContract, ());
+    let client = WarehouseReceiptContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let custodian = Address::generate(&env);
+    let farmer = Address::generate(&env);
+    let buyer = Address::generate(&env);
+
+    client.initialize(&admin);
+    client.add_custodian(&admin, &custodian);
+
+    let receipt_id = client.mint_receipt(
+        &custodian,
+        &farmer,
+        &Symbol::new(&env, "SILO_01"),
+        &Symbol::new(&env, "Cocoa"),
+        &5_000,
+        &Symbol::new(&env, "Grade1"),
+        &750,
+        &2026,
+    );
+
+    // Farmer transfers negotiable receipt to buyer
+    client.transfer_receipt(&farmer, &receipt_id, &buyer);
+    let transferred = client.get_receipt(&receipt_id);
+    assert_eq!(transferred.owner, buyer);
+}
