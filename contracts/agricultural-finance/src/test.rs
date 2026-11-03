@@ -112,7 +112,7 @@ fn test_paused_circuit_breaker() {
     let client = AgriculturalFinanceContractClient::new(&env, &finance_id);
 
     let admin = Address::generate(&env);
-    let _farmer = Address::generate(&env);
+    let _unused_farmer = Address::generate(&env);
 
     client.init(&admin, &registry_id, &rep_id);
     assert_eq!(client.is_paused(), false);
@@ -122,6 +122,44 @@ fn test_paused_circuit_breaker() {
 
     client.set_paused(&admin, &false);
     assert_eq!(client.is_paused(), false);
+}
+
+#[test]
+fn test_loan_restructuring() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let registry_id = env.register(MockRegistryContract, ());
+    let rep_id = env.register(MockReputationContract, ());
+
+    let finance_id = env.register(AgriculturalFinanceContract, ());
+    let client = AgriculturalFinanceContractClient::new(&env, &finance_id);
+
+    let admin = Address::generate(&env);
+    let farmer = Address::generate(&env);
+    let funder = Address::generate(&env);
+
+    client.init(&admin, &registry_id, &rep_id);
+
+    let farm_id = Symbol::new(&env, "AGRI_000001");
+    let purpose = Symbol::new(&env, "IrrigationKit");
+
+    let req_id = client.create_financing_request(
+        &farmer,
+        &farm_id,
+        &1000_000_0000,
+        &1100_000_0000,
+        &purpose,
+        &60,
+    );
+    client.fund_request(&funder, &req_id);
+
+    // Funder agrees to restructure to 120 days and 1150 XLM
+    client.restructure_loan(&funder, &req_id, &120, &1150_000_0000);
+
+    let req = client.get_financing(&req_id);
+    assert_eq!(req.duration_days, 120);
+    assert_eq!(req.expected_repayment, 1150_000_0000);
 }
 
 #[test]
@@ -178,7 +216,7 @@ fn test_financing_invalid_farm_id() {
     let client = AgriculturalFinanceContractClient::new(&env, &finance_id);
 
     let admin = Address::generate(&env);
-    let _farmer = Address::generate(&env);
+    let farmer = Address::generate(&env);
 
     client.init(&admin, &registry_id, &rep_id);
 

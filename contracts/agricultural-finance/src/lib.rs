@@ -288,6 +288,46 @@ impl AgriculturalFinanceContract {
         }
     }
 
+    /// Restructure an active loan with revised duration and repayment terms agreed by the funder
+    pub fn restructure_loan(
+        env: Env,
+        funder: Address,
+        request_id: u32,
+        new_duration_days: u32,
+        new_expected_repayment: i128,
+    ) {
+        funder.require_auth();
+        let mut req = Self::get_financing(env.clone(), request_id);
+
+        if req.funder != Some(funder.clone()) {
+            panic!("Unauthorized funder");
+        }
+        if req.status != 1 && req.status != 5 {
+            panic!("Only active loans can be restructured");
+        }
+        if new_duration_days <= req.duration_days {
+            panic!("New duration must extend current tenure");
+        }
+        if new_expected_repayment < req.requested_amount {
+            panic!("Repayment cannot be lower than principal");
+        }
+
+        req.duration_days = new_duration_days;
+        req.expected_repayment = new_expected_repayment;
+
+        env.storage()
+            .instance()
+            .set(&DataKey::Financing(request_id), &req);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (Symbol::new(&env, "LoanRestructured"), request_id),
+            (funder, new_duration_days, new_expected_repayment),
+        );
+    }
+
     pub fn record_repayment(env: Env, farmer: Address, request_id: u32) {
         farmer.require_auth();
         let mut req = Self::get_financing(env.clone(), request_id);
