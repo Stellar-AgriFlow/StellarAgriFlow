@@ -142,3 +142,29 @@ fn test_dispute_timeout_refund() {
     let refunded = client.get_escrow(&escrow_id);
     assert_eq!(refunded.status, 3); // Refunded
 }
+
+#[test]
+fn test_escrow_pause_and_cancel_unfunded() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let rep_contract_id = env.register(MockReputationContract, ());
+    let escrow_contract_id = env.register(AgriculturalEscrowContract, ());
+    let client = AgriculturalEscrowContractClient::new(&env, &escrow_contract_id);
+
+    let admin = Address::generate(&env);
+    let buyer = Address::generate(&env);
+    let seller = Address::generate(&env);
+
+    client.init(&admin, &rep_contract_id);
+    assert_eq!(client.is_paused(), false);
+
+    client.set_paused(&admin, &true);
+    assert_eq!(client.is_paused(), true);
+    client.set_paused(&admin, &false);
+
+    let escrow_id = client.create_escrow(&buyer, &buyer, &seller, &100, &300_000_0000);
+    client.cancel_unfunded_escrow(&buyer, &escrow_id);
+    let cancelled = client.get_escrow(&escrow_id);
+    assert_eq!(cancelled.status, 3);
+}

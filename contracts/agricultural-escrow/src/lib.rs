@@ -29,6 +29,7 @@ pub enum DataKey {
     ReputationContract,
     EscrowCount,
     Escrow(u32),
+    Paused,
 }
 
 #[contract]
@@ -46,9 +47,32 @@ impl AgriculturalEscrowContract {
             .instance()
             .set(&DataKey::ReputationContract, &reputation_contract);
         env.storage().instance().set(&DataKey::EscrowCount, &0u32);
+        env.storage().instance().set(&DataKey::Paused, &false);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+    }
+
+    pub fn set_paused(env: Env, admin: Address, paused: bool) {
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Not initialized");
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            panic!("Unauthorized admin");
+        }
+        env.storage().instance().set(&DataKey::Paused, &paused);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish((Symbol::new(&env, "EscrowPaused"),), paused);
+    }
+
+    pub fn is_paused(env: Env) -> bool {
+        env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
     }
 
     pub fn create_escrow(
@@ -59,6 +83,9 @@ impl AgriculturalEscrowContract {
         listing_id: u32,
         amount: i128,
     ) -> u32 {
+        if Self::is_paused(env.clone()) {
+            panic!("Contract is paused");
+        }
         caller.require_auth();
         if amount <= 0 {
             panic!("Amount must be greater than zero");
@@ -101,6 +128,9 @@ impl AgriculturalEscrowContract {
     }
 
     pub fn fund_escrow(env: Env, buyer: Address, escrow_id: u32) {
+        if Self::is_paused(env.clone()) {
+            panic!("Contract is paused");
+        }
         buyer.require_auth();
         let mut escrow = Self::get_escrow(env.clone(), escrow_id);
 
@@ -308,6 +338,31 @@ impl AgriculturalEscrowContract {
         env.events().publish(
             (Symbol::new(&env, "DisputeTimeoutRefunded"), escrow_id),
             (buyer, escrow.amount),
+        );
+    }
+
+    pub fn cancel_unfunded_escrow(env: Env, buyer: Address, escrow_id: u32) {
+        buyer.require_auth();
+        let mut escrow = Self::get_escrow(env.clone(), escrow_id);
+
+        if escrow.buyer != buyer {
+            panic!("Unauthorized buyer");
+        }
+        if escrow.status != 0 {
+            panic!("Only unfunded escrows can be cancelled");
+        }
+
+        escrow.status = 3; // Refunded/Cancelled
+        env.storage()
+            .instance()
+            .set(&DataKey::Escrow(escrow_id), &escrow);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (Symbol::new(&env, "EscrowCancelled"), escrow_id),
+            buyer,
         );
     }
 
