@@ -30,3 +30,26 @@ fn test_parametric_insurance_initialization() {
     assert_eq!(client.get_total_liquidity(), 0);
     assert_eq!(client.get_policy_count(), 0);
 }
+
+#[test]
+fn test_deposit_liquidity() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let oracle_id = env.register(MockWeatherOracle, ());
+
+    let contract_id = env.register(ParametricInsuranceContract, ());
+    let client = ParametricInsuranceContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let lp = Address::generate(&env);
+
+    client.initialize(&admin, &oracle_id);
+
+    // LP deposits 10,000 stroops
+    let shares = client.deposit_liquidity(&lp, &10_000_0000);
+    assert_eq!(shares, 10_000_0000);
+    assert_eq!(client.get_total_liquidity(), 10_000_0000);
+    assert_eq!(client.get_user_shares(&lp), 10_000_0000);
+    assert_eq!(client.get_total_shares(), 10_000_0000);
+}
