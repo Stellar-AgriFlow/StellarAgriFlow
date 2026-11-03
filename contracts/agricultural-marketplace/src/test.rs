@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::Address as _, Env};
+use soroban_sdk::{testutils::{Address as _, Ledger as _}, Env};
 
 #[contract]
 pub struct MockEscrowContract;
@@ -121,4 +121,33 @@ fn test_volume_discounting() {
 
     // 500 units @ 10 = 5000 - 10% = 4500
     assert_eq!(client.calculate_discounted_total(&10, &500), 4500);
+}
+
+#[test]
+fn test_expire_stale_listing() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let market_id = env.register(AgriculturalMarketplaceContract, ());
+    let client = AgriculturalMarketplaceContractClient::new(&env, &market_id);
+
+    let seller = Address::generate(&env);
+    let keeper = Address::generate(&env);
+
+    let listing_id = client.create_listing(
+        &seller,
+        &Symbol::new(&env, "AGRI_000001"),
+        &Symbol::new(&env, "Tomatoes"),
+        &100,
+        &Symbol::new(&env, "Crates"),
+        &15_000_0000,
+        &Symbol::new(&env, "Kano"),
+    );
+
+    // Shelf life = 14 days. Advance 15 days
+    env.ledger().set_timestamp(env.ledger().timestamp() + 15 * 86400);
+
+    client.expire_listing(&keeper, &listing_id, &14);
+    let listing = client.get_listing(&listing_id);
+    assert_eq!(listing.status, 3); // Expired
 }

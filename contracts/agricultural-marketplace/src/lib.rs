@@ -222,6 +222,34 @@ impl AgriculturalMarketplaceContract {
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
     }
 
+    /// Mark stale or perishable produce listings as expired once shelf life elapses
+    pub fn expire_listing(env: Env, caller: Address, listing_id: u32, max_shelf_life_days: u32) {
+        caller.require_auth();
+        let mut listing = Self::get_listing(env.clone(), listing_id);
+
+        if listing.status != 0 {
+            panic!("Only active listings can expire");
+        }
+
+        let shelf_life_seconds = (max_shelf_life_days as u64) * 86400;
+        if env.ledger().timestamp() < listing.created_at + shelf_life_seconds {
+            panic!("Listing has not exceeded shelf life");
+        }
+
+        listing.status = 3; // Expired
+        env.storage()
+            .instance()
+            .set(&DataKey::Listing(listing_id), &listing);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (Symbol::new(&env, "ListingExpired"), listing_id),
+            caller,
+        );
+    }
+
     pub fn get_listing(env: Env, listing_id: u32) -> ProduceListing {
         env.storage()
             .instance()
