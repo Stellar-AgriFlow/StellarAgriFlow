@@ -11,6 +11,7 @@ export * from './indexer';
 export * from './receipt';
 export * from './insurance';
 export * from './liquidation';
+export * from './cooperative';
 export * from './zod/farmSchemas';
 export * from './zod/escrowSchemas';
 export * from './zod/loanSchemas';
