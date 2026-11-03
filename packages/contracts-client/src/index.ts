@@ -11,6 +11,7 @@ export * from './cooperativeClient';
 export * from './stellarAssetClient';
 export * from './interestAccrual';
 export * from './batchPaymentEngine';
+export * from './accountMergeRecovery';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
