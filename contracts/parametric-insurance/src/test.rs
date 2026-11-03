@@ -205,3 +205,29 @@ fn test_get_policies_by_farmer() {
     let farmer_policies = client.get_policies_by_farmer(&farmer);
     assert_eq!(farmer_policies.len(), 2);
 }
+
+#[test]
+fn test_insurance_circuit_breaker() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let oracle_id = env.register(MockWeatherOracle, ());
+
+    let contract_id = env.register(ParametricInsuranceContract, ());
+    let client = ParametricInsuranceContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let lp = Address::generate(&env);
+    client.initialize(&admin, &oracle_id);
+
+    assert_eq!(client.is_paused(), false);
+    client.set_paused(&admin, &true);
+    assert_eq!(client.is_paused(), true);
+
+    // Deposit while paused should fail
+    let err_dep = client.try_deposit_liquidity(&lp, &10_000_0000);
+    assert_eq!(err_dep.err(), Some(Ok(InsuranceError::ContractPaused)));
+
+    client.set_paused(&admin, &false);
+    assert_eq!(client.is_paused(), false);
+}

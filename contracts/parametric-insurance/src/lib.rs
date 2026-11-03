@@ -94,6 +94,28 @@ impl ParametricInsuranceContract {
         env.storage().instance().get(&DataKey::PolicyCount).unwrap_or(0)
     }
 
+    pub fn set_paused(env: Env, admin: Address, paused: bool) -> Result<(), InsuranceError> {
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(InsuranceError::NotInitialized)?;
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            return Err(InsuranceError::Unauthorized);
+        }
+
+        env.storage().instance().set(&DataKey::Paused, &paused);
+        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish((symbol_short!("ins_pause"),), paused);
+        Ok(())
+    }
+
+    pub fn is_paused(env: Env) -> bool {
+        env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
+    }
+
     /// Deposit underwriting liquidity into the insurance pool and receive LP shares
     pub fn deposit_liquidity(
         env: Env,
@@ -101,6 +123,9 @@ impl ParametricInsuranceContract {
         amount: i128,
     ) -> Result<i128, InsuranceError> {
         provider.require_auth();
+        if Self::is_paused(env.clone()) {
+            return Err(InsuranceError::ContractPaused);
+        }
         if amount <= 0 {
             return Err(InsuranceError::InvalidAmount);
         }
@@ -196,6 +221,9 @@ impl ParametricInsuranceContract {
         duration_days: u32,
     ) -> Result<u32, InsuranceError> {
         farmer.require_auth();
+        if Self::is_paused(env.clone()) {
+            return Err(InsuranceError::ContractPaused);
+        }
         if payout_amount <= 0 || duration_days == 0 || trigger_drought_index > 100 {
             return Err(InsuranceError::InvalidAmount);
         }
