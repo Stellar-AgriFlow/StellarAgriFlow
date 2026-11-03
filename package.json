@@ -9,15 +9,16 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "contracts:test": "cargo test --manifest-path contracts/Cargo.toml",
+    "contracts:build": "cargo build --manifest-path contracts/Cargo.toml --target wasm32-unknown-unknown --release"
   },
   "devDependencies": {
     "turbo": "^2.4.4",
     "typescript": "^5.8.2",
-    "vercel": "^62.0.0",
     "vitest": "^3.0.7"
   },
-  "packageManager": "pnpm@12.10.1",
+  "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20.0.0"
   }

@@ -9,7 +9,7 @@ fn test_register_and_get_farm() {
     env.mock_all_auths();
     env.ledger().set_timestamp(1728400000);
 
-    let contract_id = env.register_contract(None, FarmRegistryContract);
+    let contract_id = env.register(FarmRegistryContract, ());
     let client = FarmRegistryContractClient::new(&env, &contract_id);
 
     let farmer = Address::generate(&env);
@@ -50,7 +50,7 @@ fn test_unique_sequential_farm_ids() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id = env.register_contract(None, FarmRegistryContract);
+    let contract_id = env.register(FarmRegistryContract, ());
     let client = FarmRegistryContractClient::new(&env, &contract_id);
 
     let farmer1 = Address::generate(&env);
@@ -84,7 +84,7 @@ fn test_invalid_farm_data_rejected() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id = env.register_contract(None, FarmRegistryContract);
+    let contract_id = env.register(FarmRegistryContract, ());
     let client = FarmRegistryContractClient::new(&env, &contract_id);
 
     let farmer = Address::generate(&env);
@@ -105,7 +105,7 @@ fn test_invalid_farm_data_rejected() {
 #[test]
 fn test_has_farm_nonexistent() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, FarmRegistryContract);
+    let contract_id = env.register(FarmRegistryContract, ());
     let client = FarmRegistryContractClient::new(&env, &contract_id);
 
     assert!(!client.has_farm(&String::from_str(&env, "AGRI-999999")));
@@ -117,7 +117,7 @@ fn test_unauthorized_status_update_rejected() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id = env.register_contract(None, FarmRegistryContract);
+    let contract_id = env.register(FarmRegistryContract, ());
     let client = FarmRegistryContractClient::new(&env, &contract_id);
 
     let real_owner = Address::generate(&env);
@@ -149,7 +149,7 @@ fn test_event_emission() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id = env.register_contract(None, FarmRegistryContract);
+    let contract_id = env.register(FarmRegistryContract, ());
     let client = FarmRegistryContractClient::new(&env, &contract_id);
 
     let farmer = Address::generate(&env);

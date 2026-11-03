@@ -3,7 +3,8 @@ export type FinancingStatus =
   | 'Funded'
   | 'Repaid'
   | 'Defaulted'
-  | 'Closed';
+  | 'Closed'
+  | 'ForbearanceActive';
 
 export interface FinancingRequest {
   requestId: number;
@@ -22,6 +23,8 @@ export interface FinancingRequest {
   fundedAt?: number;
   repaidAt?: number;
   txHash?: string;
+  oracleCollateralValuationUsd?: number;
+  weatherDroughtReliefActive?: boolean;
 }
 
 export interface CreateFinancingRequestParams {
@@ -31,6 +34,7 @@ export interface CreateFinancingRequestParams {
   purpose: string;
   durationDays: number;
   interestRatePercent?: number;
+  cropCommodity?: string;
 }
 
 export interface FundFinancingParams {

@@ -28,6 +28,26 @@ impl MockReputationContract {
     }
 }
 
+#[contract]
+pub struct MockWeatherOracleContract;
+
+#[contractimpl]
+impl MockWeatherOracleContract {
+    pub fn check_drought_trigger(_env: Env, _region: Symbol, _threshold: u32) -> bool {
+        true
+    }
+}
+
+#[contract]
+pub struct MockPriceFeedContract;
+
+#[contractimpl]
+impl MockPriceFeedContract {
+    pub fn get_price(_env: Env, _commodity: Symbol) -> i128 {
+        442
+    }
+}
+
 #[test]
 fn test_financing_lifecycle() {
     let env = Env::default();
@@ -78,6 +98,47 @@ fn test_financing_lifecycle() {
     client.close_financing(&farmer, &req_id);
     let closed_req = client.get_financing(&req_id);
     assert_eq!(closed_req.status, 4); // Closed
+}
+
+#[test]
+fn test_drought_forbearance_extension() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let registry_id = env.register(MockRegistryContract, ());
+    let rep_id = env.register(MockReputationContract, ());
+    let weather_id = env.register(MockWeatherOracleContract, ());
+    let price_feed_id = env.register(MockPriceFeedContract, ());
+
+    let finance_id = env.register(AgriculturalFinanceContract, ());
+    let client = AgriculturalFinanceContractClient::new(&env, &finance_id);
+
+    let admin = Address::generate(&env);
+    let farmer = Address::generate(&env);
+    let funder = Address::generate(&env);
+
+    client.init(&admin, &registry_id, &rep_id);
+    client.set_oracle_contracts(&admin, &price_feed_id, &weather_id);
+
+    let farm_id = Symbol::new(&env, "AGRI_000001");
+    let req_id = client.create_financing_request(
+        &farmer,
+        &farm_id,
+        &1500_000_0000,
+        &1600_000_0000,
+        &Symbol::new(&env, "Fertilizer"),
+        &90,
+    );
+
+    client.fund_request(&funder, &req_id);
+
+    // Apply drought forbearance verified by weather oracle
+    let forbearance_applied = client.apply_drought_forbearance(&farmer, &req_id, &Symbol::new(&env, "NG_KANO"));
+    assert_eq!(forbearance_applied, true);
+
+    let updated_req = client.get_financing(&req_id);
+    assert_eq!(updated_req.status, 5); // ForbearanceActive
+    assert_eq!(updated_req.duration_days, 150); // 90 + 60 days extension
 }
 
 #[test]

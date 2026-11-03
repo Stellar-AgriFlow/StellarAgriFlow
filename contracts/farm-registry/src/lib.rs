@@ -1,7 +1,10 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, String, Symbol,
+    contract, contracterror, contractimpl, contracttype, Address, Env, String, Symbol,
 };
+
+const INSTANCE_BUMP_AMOUNT: u32 = 300_000;
+const INSTANCE_LIFETIME_THRESHOLD: u32 = 100_000;
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -80,6 +83,9 @@ impl FarmRegistryContract {
         let mut count: u32 = env.storage().instance().get(&DataKey::FarmCount).unwrap_or(0);
         count += 1;
         env.storage().instance().set(&DataKey::FarmCount, &count);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         let farm_id = format_farm_id(&env, count);
         let timestamp = env.ledger().timestamp();
@@ -98,6 +104,9 @@ impl FarmRegistryContract {
 
         // Persist on-chain
         env.storage().persistent().set(&DataKey::Farm(farm_id.clone()), &passport);
+        env.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Farm(farm_id.clone()), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Emit real Soroban contract event
         env.events().publish(
@@ -147,7 +156,10 @@ impl FarmRegistryContract {
         }
 
         passport.status = new_status;
-        env.storage().persistent().set(&DataKey::Farm(farm_id), &passport);
+        env.storage().persistent().set(&DataKey::Farm(farm_id.clone()), &passport);
+        env.storage()
+            .persistent()
+            .extend_ttl(&DataKey::Farm(farm_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         Ok(())
     }

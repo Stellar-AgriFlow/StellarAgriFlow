@@ -18,6 +18,8 @@ import {
   Clock,
   ExternalLink,
   ShieldAlert,
+  ShieldCheck,
+  Flame,
   ArrowRight,
   TrendingUp,
 } from 'lucide-react';
@@ -77,6 +79,23 @@ export function FinancingSection({ passports, onRequestCreated }: FinancingSecti
       durationDays: 90,
       status: 'Requested',
       createdAt: Date.now() - 86400000,
+    },
+    {
+      requestId: 103,
+      farmId: 'AGRI-000001',
+      farmer: 'GBPHHDV6RE3XHUUUR2K3RNV2C5WLDNNMZC5VFV4DWAMLU5TH27PF55XU',
+      requestedAmount: '15000000000',
+      requestedAmountXlm: 1500,
+      fundingAsset: 'XLM',
+      purpose: 'Organic Grain Storage Expansion',
+      expectedRepaymentAmount: '15900000000',
+      expectedRepaymentXlm: 1590,
+      durationDays: 150,
+      status: 'ForbearanceActive',
+      funder: 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN',
+      createdAt: Date.now() - 86400000 * 10,
+      fundedAt: Date.now() - 86400000 * 8,
+      weatherDroughtReliefActive: true,
     },
   ]);
 
@@ -377,18 +396,27 @@ export function FinancingSection({ passports, onRequestCreated }: FinancingSecti
                       {req.farmId}
                     </Badge>
                   </div>
-                  <Badge
-                    variant={
-                      req.status === 'Funded'
-                        ? 'emerald'
-                        : req.status === 'Repaid'
-                        ? 'neutral'
-                        : 'warning'
-                    }
-                    size="sm"
-                  >
-                    {req.status}
-                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    {req.weatherDroughtReliefActive && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                        <Flame className="w-3 h-3" /> Drought Relief (+60d)
+                      </span>
+                    )}
+                    <Badge
+                      variant={
+                        req.status === 'Funded'
+                          ? 'emerald'
+                          : req.status === 'Repaid'
+                          ? 'neutral'
+                          : req.status === 'ForbearanceActive'
+                          ? 'warning'
+                          : 'warning'
+                      }
+                      size="sm"
+                    >
+                      {req.status}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 text-xs">

@@ -4,6 +4,9 @@ use soroban_sdk::{
     contract, contractimpl, contracttype, vec, Address, Env, IntoVal, Symbol,
 };
 
+const INSTANCE_BUMP_AMOUNT: u32 = 300_000;
+const INSTANCE_LIFETIME_THRESHOLD: u32 = 100_000;
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EscrowRecord {
@@ -40,6 +43,9 @@ impl AgriculturalEscrowContract {
             .instance()
             .set(&DataKey::ReputationContract, &reputation_contract);
         env.storage().instance().set(&DataKey::EscrowCount, &0u32);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
     }
 
     pub fn create_escrow(
@@ -75,6 +81,9 @@ impl AgriculturalEscrowContract {
 
         env.storage().instance().set(&DataKey::Escrow(count), &escrow);
         env.storage().instance().set(&DataKey::EscrowCount, &count);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Emit EscrowCreated event: topics (symbol, escrow_id), data (buyer, seller, amount)
         env.events().publish(
@@ -100,6 +109,9 @@ impl AgriculturalEscrowContract {
         env.storage()
             .instance()
             .set(&DataKey::Escrow(escrow_id), &escrow);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Emit EscrowFunded event
         env.events().publish(
@@ -124,6 +136,9 @@ impl AgriculturalEscrowContract {
         env.storage()
             .instance()
             .set(&DataKey::Escrow(escrow_id), &escrow);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Inter-contract call: Record reputation for seller and buyer if reputation_contract is set
         if let Some(rep_contract) = env
@@ -179,6 +194,9 @@ impl AgriculturalEscrowContract {
         env.storage()
             .instance()
             .set(&DataKey::Escrow(escrow_id), &escrow);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Emit EscrowRefunded event
         env.events().publish(

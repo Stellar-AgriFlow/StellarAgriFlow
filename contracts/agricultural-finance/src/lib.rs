@@ -1,8 +1,11 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, vec, Address, Env, IntoVal, Symbol,
+    contract, contractimpl, contracttype, symbol_short, vec, Address, Env, IntoVal, Symbol,
 };
+
+const INSTANCE_BUMP_AMOUNT: u32 = 300_000;
+const INSTANCE_LIFETIME_THRESHOLD: u32 = 100_000;
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -14,7 +17,7 @@ pub struct FinancingRequest {
     pub expected_repayment: i128,
     pub purpose: Symbol,
     pub duration_days: u32,
-    pub status: u32, // 0 = Requested, 1 = Funded, 2 = Repaid, 3 = Defaulted, 4 = Closed
+    pub status: u32, // 0 = Requested, 1 = Funded, 2 = Repaid, 3 = Defaulted, 4 = Closed, 5 = ForbearanceActive
     pub funder: Option<Address>,
     pub created_at: u64,
     pub funded_at: u64,
@@ -26,6 +29,8 @@ pub enum DataKey {
     Admin,
     FarmRegistryContract,
     ReputationContract,
+    PriceFeedContract,
+    WeatherOracleContract,
     FinancingCount,
     Financing(u32),
 }
@@ -53,6 +58,42 @@ impl AgriculturalFinanceContract {
             .instance()
             .set(&DataKey::ReputationContract, &reputation_contract);
         env.storage().instance().set(&DataKey::FinancingCount, &0u32);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+    }
+
+    /// Configure external AgriFlow Oracle contracts for automated collateral valuation and weather risk
+    pub fn set_oracle_contracts(
+        env: Env,
+        admin: Address,
+        price_feed_contract: Address,
+        weather_oracle_contract: Address,
+    ) {
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Not initialized");
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            panic!("Unauthorized admin");
+        }
+
+        env.storage()
+            .instance()
+            .set(&DataKey::PriceFeedContract, &price_feed_contract);
+        env.storage()
+            .instance()
+            .set(&DataKey::WeatherOracleContract, &weather_oracle_contract);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+        env.events().publish(
+            (symbol_short!("oracles"),),
+            (price_feed_contract, weather_oracle_contract),
+        );
     }
 
     pub fn create_financing_request(
@@ -117,6 +158,9 @@ impl AgriculturalFinanceContract {
 
         env.storage().instance().set(&DataKey::Financing(count), &request);
         env.storage().instance().set(&DataKey::FinancingCount, &count);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Emit FinancingRequested event
         env.events().publish(
@@ -145,6 +189,9 @@ impl AgriculturalFinanceContract {
         env.storage()
             .instance()
             .set(&DataKey::Financing(request_id), &req);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Award reputation to funder via cross-contract call
         if let Some(rep_contract) = env
@@ -168,6 +215,50 @@ impl AgriculturalFinanceContract {
         );
     }
 
+    /// Automatically extend repayment timeline if satellite weather oracle verifies a severe drought trigger
+    pub fn apply_drought_forbearance(env: Env, caller: Address, request_id: u32, region: Symbol) -> bool {
+        caller.require_auth();
+        let mut req = Self::get_financing(env.clone(), request_id);
+
+        if req.status != 1 && req.status != 5 {
+            panic!("Financing request is not in funded status");
+        }
+
+        let weather_oracle = env
+            .storage()
+            .instance()
+            .get::<DataKey, Address>(&DataKey::WeatherOracleContract)
+            .expect("Weather oracle not configured");
+
+        // Query weather oracle: check_drought_trigger(region, threshold: 70)
+        let args = vec![&env, region.into_val(&env), 70u32.into_val(&env)];
+        let is_drought: bool = env.invoke_contract(
+            &weather_oracle,
+            &Symbol::new(&env, "check_drought_trigger"),
+            args,
+        );
+
+        if is_drought {
+            req.duration_days += 60; // 60-day automatic forbearance extension
+            req.status = 5; // ForbearanceActive
+
+            env.storage()
+                .instance()
+                .set(&DataKey::Financing(request_id), &req);
+            env.storage()
+                .instance()
+                .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+
+            env.events().publish(
+                (symbol_short!("forbear"), request_id),
+                (req.farmer, req.duration_days),
+            );
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn record_repayment(env: Env, farmer: Address, request_id: u32) {
         farmer.require_auth();
         let mut req = Self::get_financing(env.clone(), request_id);
@@ -175,7 +266,7 @@ impl AgriculturalFinanceContract {
         if req.farmer != farmer {
             panic!("Unauthorized farmer");
         }
-        if req.status != 1 {
+        if req.status != 1 && req.status != 5 {
             panic!("Financing request must be funded before repayment");
         }
 
@@ -185,6 +276,9 @@ impl AgriculturalFinanceContract {
         env.storage()
             .instance()
             .set(&DataKey::Financing(request_id), &req);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Inter-contract call: Award farmer reputation for timely repayment
         if let Some(rep_contract) = env
@@ -223,6 +317,9 @@ impl AgriculturalFinanceContract {
         env.storage()
             .instance()
             .set(&DataKey::Financing(request_id), &req);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Emit FinancingClosed event
         env.events().publish(

@@ -1,8 +1,11 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec,
+    contract, contractimpl, contracttype, Address, Env, Symbol,
 };
+
+const INSTANCE_BUMP_AMOUNT: u32 = 300_000;
+const INSTANCE_LIFETIME_THRESHOLD: u32 = 100_000;
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -34,6 +37,9 @@ impl AgriculturalReputationContract {
             panic!("Contract already initialized");
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
     }
 
     pub fn add_authorized_caller(env: Env, admin: Address, caller: Address) {
@@ -47,6 +53,9 @@ impl AgriculturalReputationContract {
             panic!("Unauthorized admin");
         }
         env.storage().instance().set(&DataKey::Authorized(caller), &true);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
     }
 
     pub fn is_authorized(env: Env, caller: Address) -> bool {
@@ -93,6 +102,9 @@ impl AgriculturalReputationContract {
 
         record.updated_at = env.ledger().timestamp();
         env.storage().instance().set(&DataKey::Reputation(user.clone()), &record);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Emit ReputationUpdated event: topics (symbol, user), data (score, activity)
         env.events().publish(

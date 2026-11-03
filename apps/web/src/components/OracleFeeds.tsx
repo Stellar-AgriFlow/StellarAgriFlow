@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { defaultOracleService } from '@agriflow/oracle';
+import { defaultOracleService, AGRIFLOW_ORACLE_NETWORK_CONTRACTS } from '@agriflow/oracle';
 import { OracleFeedData } from '@agriflow/types';
 import { Card, Badge } from '@agriflow/ui';
 import {
@@ -9,10 +9,11 @@ import {
   TrendingDown,
   CloudRain,
   Thermometer,
-  ShieldAlert,
+  ShieldCheck,
   Globe2,
   ExternalLink,
   Activity,
+  Cpu,
 } from 'lucide-react';
 
 export function OracleFeeds() {
@@ -33,15 +34,45 @@ export function OracleFeeds() {
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Globe2 className="w-5 h-5 text-emerald-400" />
             Agricultural Oracle Data Feeds
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              Soroban Protocol Live
+            </span>
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Real-time reference commodity benchmarks and weather risk feeds for forward agricultural contracts.
+            Real-time reference commodity benchmarks and weather risk feeds powered by the decentralized{' '}
+            <a
+              href="https://github.com/Stellar-AgriFlow/agriflow-oracle-network"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-400 hover:underline font-medium inline-flex items-center gap-1"
+            >
+              AgriFlow Oracle Network <ExternalLink className="w-3 h-3" />
+            </a>.
           </p>
         </div>
 
-        <Badge variant="warning" size="sm">
-          External Market Feed (Off-Chain Reference)
-        </Badge>
+        <div className="flex items-center gap-2">
+          <a
+            href={`https://stellar.expert/explorer/testnet/contract/${AGRIFLOW_ORACLE_NETWORK_CONTRACTS.priceFeedContractId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-emerald-500/30 text-xs font-mono text-emerald-400 hover:bg-slate-800 transition"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Price Feed: {AGRIFLOW_ORACLE_NETWORK_CONTRACTS.priceFeedContractId.slice(0, 8)}...
+            <ExternalLink className="w-3 h-3 text-slate-400" />
+          </a>
+          <a
+            href={`https://stellar.expert/explorer/testnet/contract/${AGRIFLOW_ORACLE_NETWORK_CONTRACTS.weatherOracleContractId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-blue-500/30 text-xs font-mono text-blue-400 hover:bg-slate-800 transition"
+          >
+            <CloudRain className="w-3.5 h-3.5" />
+            Weather: {AGRIFLOW_ORACLE_NETWORK_CONTRACTS.weatherOracleContractId.slice(0, 8)}...
+            <ExternalLink className="w-3 h-3 text-slate-400" />
+          </a>
+        </div>
       </div>
 
       {isLoading ? (
@@ -52,9 +83,14 @@ export function OracleFeeds() {
         <div className="space-y-6">
           {/* Commodity Price Cards */}
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-              <Activity className="w-3.5 h-3.5 text-emerald-400" />
-              Global Commodity Benchmarks (USD / XLM)
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                Global Commodity Benchmarks (USD / XLM)
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono">
+                Anchored via AgriPriceFeedContract
+              </span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -99,9 +135,14 @@ export function OracleFeeds() {
 
           {/* Regional Weather Index */}
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-              <CloudRain className="w-3.5 h-3.5 text-blue-400" />
-              Regional Weather & Drought Risk Indicators
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <CloudRain className="w-3.5 h-3.5 text-blue-400" />
+                Regional Weather & Drought Risk Telemetry (Open-Meteo Synced)
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono">
+                Anchored via WeatherRiskOracleContract
+              </span>
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

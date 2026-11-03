@@ -4,6 +4,9 @@ use soroban_sdk::{
     contract, contractimpl, contracttype, vec, Address, Env, IntoVal, Symbol,
 };
 
+const INSTANCE_BUMP_AMOUNT: u32 = 300_000;
+const INSTANCE_LIFETIME_THRESHOLD: u32 = 100_000;
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProduceListing {
@@ -52,6 +55,9 @@ impl AgriculturalMarketplaceContract {
             .instance()
             .set(&DataKey::FarmRegistryContract, &farm_registry_contract);
         env.storage().instance().set(&DataKey::ListingCount, &0u32);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
     }
 
     pub fn create_listing(
@@ -108,6 +114,9 @@ impl AgriculturalMarketplaceContract {
 
         env.storage().instance().set(&DataKey::Listing(count), &listing);
         env.storage().instance().set(&DataKey::ListingCount, &count);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Emit ListingCreated event
         env.events().publish(
@@ -160,6 +169,9 @@ impl AgriculturalMarketplaceContract {
         env.storage()
             .instance()
             .set(&DataKey::Listing(listing_id), &listing);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Emit ListingPurchased event
         env.events().publish(
@@ -185,6 +197,9 @@ impl AgriculturalMarketplaceContract {
         env.storage()
             .instance()
             .set(&DataKey::Listing(listing_id), &listing);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
     }
 
     pub fn get_listing(env: Env, listing_id: u32) -> ProduceListing {

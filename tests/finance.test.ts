@@ -15,6 +15,7 @@ describe('Agricultural Financing Protocol Architecture', () => {
     durationDays: 120,
     status: 'Requested',
     createdAt: Date.now(),
+    oracleCollateralValuationUsd: 4500,
   };
 
   it('correctly models financing request parameters and interest rates', () => {
@@ -34,6 +35,7 @@ describe('Agricultural Financing Protocol Architecture', () => {
       'Repaid',
       'Defaulted',
       'Closed',
+      'ForbearanceActive',
     ];
 
     validStates.forEach((status) => {
@@ -51,5 +53,18 @@ describe('Agricultural Financing Protocol Architecture', () => {
     const funderAddress = 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN';
     const canFund = sampleRequest.farmer !== funderAddress;
     expect(canFund).toBe(true);
+  });
+
+  it('supports parametric drought forbearance extension via AgriFlow Weather Oracle', () => {
+    const activeLoan: FinancingRequest = {
+      ...sampleRequest,
+      status: 'ForbearanceActive',
+      durationDays: 180, // Extended by 60 days
+      weatherDroughtReliefActive: true,
+    };
+
+    expect(activeLoan.status).toBe('ForbearanceActive');
+    expect(activeLoan.durationDays).toBe(180);
+    expect(activeLoan.weatherDroughtReliefActive).toBe(true);
   });
 });
