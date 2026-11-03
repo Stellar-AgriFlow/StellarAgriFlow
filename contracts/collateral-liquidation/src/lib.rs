@@ -277,6 +277,23 @@ impl CollateralLiquidationContract {
         Ok(())
     }
 
+    pub fn calculate_proceeds_distribution(
+        env: Env,
+        auction_id: u64,
+        settlement_price: i128,
+    ) -> Result<(i128, i128), LiquidationError> {
+        let auction: CollateralAuction = env
+            .storage()
+            .instance()
+            .get(&DataKey::Auction(auction_id))
+            .ok_or(LiquidationError::AuctionNotFound)?;
+
+        let debt_recovered = settlement_price.min(auction.debt_amount);
+        let surplus_refund = settlement_price.saturating_sub(auction.debt_amount);
+
+        Ok((debt_recovered, surplus_refund))
+    }
+
     pub fn get_auction(env: Env, auction_id: u64) -> Result<CollateralAuction, LiquidationError> {
         env.storage()
             .instance()
