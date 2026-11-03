@@ -13,6 +13,7 @@ export * from './interestAccrual';
 export * from './batchPaymentEngine';
 export * from './accountMergeRecovery';
 export * from './claimableBalanceHelper';
+export * from './liquidityPoolCalc';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
