@@ -13,6 +13,8 @@ import { MultiSigStatusBadge } from '../../components/cooperative/MultiSigStatus
 import { ContractTtlGauge } from '../../components/cooperative/ContractTtlGauge';
 import { CrossContractTraceModal } from '../../components/cooperative/CrossContractTraceModal';
 import { CarbonOffsetBadge } from '../../components/cooperative/CarbonOffsetBadge';
+import { EmergencyPauseControl, ModulePauseItem } from '../../components/cooperative/EmergencyPauseControl';
+import { ContractModule } from '../../../../../packages/contracts-client/src/emergencyPauseManager';
 import { CrossContractInvocationNode, InvocationTraceSummary } from '../../../../../packages/contracts-client/src/crossContractAdapter';
 
 const MOCK_PROPOSALS: BulkProcurementProposal[] = [
@@ -64,8 +66,28 @@ export default function CooperativeDashboardPage() {
   const [currentLedger, setCurrentLedger] = useState<number>(154000);
   const [liveUntilLedger, setLiveUntilLedger] = useState<number>(205840);
   const [carbonBalance, setCarbonBalance] = useState<number>(45);
+  const [pauseModules, setPauseModules] = useState<ModulePauseItem[]>([
+    { module: 'TREASURY', label: 'Treasury Vault', isPaused: false },
+    { module: 'LENDING', label: 'Seasonal Microloans', isPaused: false },
+    { module: 'MARKETPLACE', label: 'Crop Marketplace', isPaused: false },
+    { module: 'ESCROW', label: 'Delivery Escrow', isPaused: false },
+    { module: 'LIQUIDATION', label: 'Collateral Liquidation', isPaused: false },
+    { module: 'INSURANCE', label: 'Weather Insurance', isPaused: false },
+  ]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'executed'>('all');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  const handleToggleModulePause = async (module: ContractModule, shouldPause: boolean) => {
+    setPauseModules((prev) =>
+      prev.map((m) => (m.module === module ? { ...m, isPaused: shouldPause } : m))
+    );
+    setActionNotice(
+      shouldPause
+        ? `EMERGENCY ALERT: Module ${module} has been paused by guardian.`
+        : `Module ${module} operational status resumed.`
+    );
+    setTimeout(() => setActionNotice(null), 4000);
+  };
 
   const handleRetireCarbonCredits = async (tons: number) => {
     setCarbonBalance((prev) => Math.max(0, prev - tons));
@@ -340,6 +362,13 @@ export default function CooperativeDashboardPage() {
           isSigner={true}
           hasUserSigned={hasUserSignedMultiSig}
           onSign={handleSignMultiSigEnvelope}
+        />
+
+        {/* Emergency Guardian Module Pause Control */}
+        <EmergencyPauseControl
+          isGuardian={true}
+          modules={pauseModules}
+          onTogglePause={handleToggleModulePause}
         />
 
         {/* Proposals List */}
