@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { computeSha256 } from './utils/crypto';
 
 export interface SiloPhysicalInventory {
   siloId: string;
@@ -98,6 +98,6 @@ export class ProofOfReserveValidator {
 
   public static generateAttestationDigest(evaluation: ProofOfReserveEvaluation): string {
     const raw = `${evaluation.commodityType}:${evaluation.totalPhysicalMetricTonnes}:${evaluation.requiredBackingMetricTonnes}:${evaluation.collateralizationRatioPercent}:${evaluation.evaluatedAtTimestamp}`;
-    return createHash('sha256').update(raw).digest('hex');
+    return computeSha256(raw);
   }
 }

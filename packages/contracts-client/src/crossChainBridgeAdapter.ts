@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { computeSha256 } from './utils/crypto';
 
 export type BridgeChain = 'STELLAR_SOROBAN' | 'ETHEREUM' | 'POLYGON' | 'ARBITRUM' | 'SOLANA';
 
@@ -40,7 +40,7 @@ export class CrossChainBridgeAdapter {
     nonce: number
   ): string {
     const raw = `${sourceChain}:${targetChain}:${assetCode}:${amount}:${sender}:${recipient}:${nonce}`;
-    return createHash('sha256').update(raw).digest('hex');
+    return computeSha256(raw);
   }
 
   public initiateStellarLock(
@@ -48,15 +48,20 @@ export class CrossChainBridgeAdapter {
     amount: number,
     stellarSender: string,
     externalRecipient: string,
-    targetChain: BridgeChain = 'POLYGON',
-    stellarTxHash?: string
+    targetChain: BridgeChain = 'ETHEREUM'
   ): CrossChainTransferRecord {
-    if (amount <= 0) throw new Error('Transfer amount must be greater than zero');
+    if (amount <= 0) {
+      throw new Error('Transfer amount must be positive');
+    }
     if (!stellarSender.startsWith('G') && !stellarSender.startsWith('C')) {
-      throw new Error(`Invalid Stellar sender address: ${stellarSender}`);
+      throw new Error('Invalid Stellar sender address');
+    }
+    if (!externalRecipient) {
+      throw new Error('External recipient cannot be empty');
     }
 
-    const nonce = ++this.nonceCounter;
+    this.nonceCounter++;
+    const nonce = this.nonceCounter;
     const messageHash = this.computeMessageHash(
       'STELLAR_SOROBAN',
       targetChain,
@@ -66,6 +71,7 @@ export class CrossChainBridgeAdapter {
       externalRecipient,
       nonce
     );
+
     const transferId = `BRIDGE-OUT-${messageHash.substring(0, 12).toUpperCase()}`;
 
     const record: CrossChainTransferRecord = {
@@ -76,7 +82,6 @@ export class CrossChainBridgeAdapter {
       amount,
       senderAddress: stellarSender,
       recipientAddress: externalRecipient,
-      stellarTxHash: stellarTxHash || `tx_stellar_lock_${nonce}`,
       status: 'LOCKED_ON_STELLAR',
       nonce,
       messageHash,
@@ -89,13 +94,15 @@ export class CrossChainBridgeAdapter {
 
   public confirmTargetMint(transferId: string, externalTxHash: string): CrossChainTransferRecord {
     const record = this.transfers.get(transferId);
-    if (!record) throw new Error(`Transfer ${transferId} not found`);
+    if (!record) {
+      throw new Error(`Transfer ID not found: ${transferId}`);
+    }
     if (record.status !== 'LOCKED_ON_STELLAR') {
-      throw new Error(`Invalid transition: transfer is in status ${record.status}`);
+      throw new Error(`Invalid status transition from ${record.status} to MINTED_ON_TARGET`);
     }
 
-    record.status = 'MINTED_ON_TARGET';
     record.externalTxHash = externalTxHash;
+    record.status = 'MINTED_ON_TARGET';
     return record;
   }
 
@@ -104,15 +111,18 @@ export class CrossChainBridgeAdapter {
     amount: number,
     externalSender: string,
     stellarRecipient: string,
-    sourceChain: BridgeChain = 'POLYGON',
-    externalBurnTxHash: string
+    sourceChain: BridgeChain,
+    externalTxHash: string
   ): CrossChainTransferRecord {
-    if (amount <= 0) throw new Error('Transfer amount must be greater than zero');
+    if (amount <= 0) {
+      throw new Error('Transfer amount must be positive');
+    }
     if (!stellarRecipient.startsWith('G') && !stellarRecipient.startsWith('C')) {
-      throw new Error(`Invalid Stellar recipient address: ${stellarRecipient}`);
+      throw new Error('Invalid Stellar recipient address');
     }
 
-    const nonce = ++this.nonceCounter;
+    this.nonceCounter++;
+    const nonce = this.nonceCounter;
     const messageHash = this.computeMessageHash(
       sourceChain,
       'STELLAR_SOROBAN',
@@ -122,6 +132,7 @@ export class CrossChainBridgeAdapter {
       stellarRecipient,
       nonce
     );
+
     const transferId = `BRIDGE-IN-${messageHash.substring(0, 12).toUpperCase()}`;
 
     const record: CrossChainTransferRecord = {
@@ -132,7 +143,7 @@ export class CrossChainBridgeAdapter {
       amount,
       senderAddress: externalSender,
       recipientAddress: stellarRecipient,
-      externalTxHash: externalBurnTxHash,
+      externalTxHash,
       status: 'BURNED_ON_TARGET',
       nonce,
       messageHash,
@@ -143,16 +154,29 @@ export class CrossChainBridgeAdapter {
     return record;
   }
 
-  public confirmStellarUnlock(transferId: string, stellarUnlockTxHash: string): CrossChainTransferRecord {
+  public confirmStellarUnlock(transferId: string, stellarTxHash: string): CrossChainTransferRecord {
     const record = this.transfers.get(transferId);
-    if (!record) throw new Error(`Transfer ${transferId} not found`);
+    if (!record) {
+      throw new Error(`Transfer ID not found: ${transferId}`);
+    }
     if (record.status !== 'BURNED_ON_TARGET') {
-      throw new Error(`Invalid transition: transfer is in status ${record.status}`);
+      throw new Error(`Invalid transition: cannot unlock transfer with status ${record.status}`);
     }
 
+    record.stellarTxHash = stellarTxHash;
     record.status = 'UNLOCKED_ON_STELLAR';
-    record.stellarTxHash = stellarUnlockTxHash;
     return record;
+  }
+
+  public initiateStellarUnlock(
+    assetCode: string,
+    amount: number,
+    externalSender: string,
+    stellarRecipient: string,
+    sourceChain: BridgeChain,
+    externalTxHash: string
+  ): CrossChainTransferRecord {
+    return this.initiateInboundBurn(assetCode, amount, externalSender, stellarRecipient, sourceChain, externalTxHash);
   }
 
   public getTransfer(transferId: string): CrossChainTransferRecord | undefined {

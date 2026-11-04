@@ -46,6 +46,23 @@ export abstract class BaseSorobanClient {
     signer: (xdr: string) => Promise<string>,
     onStateChange?: (state: string) => void
   ): Promise<{ txHash: string; status: rpc.Api.GetTransactionStatus }> {
+    const res = await this.invokeContract(
+      functionName,
+      args,
+      invokerAddress,
+      signer,
+      onStateChange
+    );
+    return { txHash: res.txHash, status: res.status };
+  }
+
+  protected async invokeContract(
+    functionName: string,
+    args: xdr.ScVal[],
+    invokerAddress: string,
+    signer: (xdr: string) => Promise<string>,
+    onStateChange?: (state: string) => void
+  ): Promise<{ result: xdr.ScVal; txHash: string; status: rpc.Api.GetTransactionStatus }> {
     try {
       onStateChange?.('preparing');
 
@@ -101,7 +118,9 @@ export abstract class BaseSorobanClient {
 
       if (confirmed.status === rpc.Api.GetTransactionStatus.SUCCESS) {
         onStateChange?.('confirmed');
-        return { txHash, status: confirmed.status };
+        const simResult = rpc.Api.isSimulationSuccess(simulation) ? simulation.result?.retval : undefined;
+        const result = (confirmed.returnValue as xdr.ScVal) || simResult || xdr.ScVal.scvVoid();
+        return { result, txHash, status: confirmed.status };
       } else {
         onStateChange?.('failed');
         throw new Error(`Transaction failed with status: ${confirmed.status}`);
@@ -112,6 +131,32 @@ export abstract class BaseSorobanClient {
       }
       throw new Error(parseStellarError(err));
     }
+  }
+
+  async readContract(functionName: string, args: xdr.ScVal[] = []): Promise<xdr.ScVal | any> {
+    const dummyAccount = new (await import('@stellar/stellar-sdk')).Account(
+      'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H',
+      '0'
+    );
+    const tx = new TransactionBuilder(dummyAccount, {
+      fee: STELLAR_BASE_FEE_STROOPS,
+      networkPassphrase: this.networkPassphrase,
+    })
+      .addOperation(
+        Operation.invokeContractFunction({
+          contract: this.contractId,
+          function: functionName,
+          args,
+        })
+      )
+      .setTimeout(300)
+      .build();
+
+    const simulation = await this.server.simulateTransaction(tx);
+    if (rpc.Api.isSimulationSuccess(simulation) && simulation.result?.retval) {
+      return simulation.result.retval;
+    }
+    throw new Error(`Simulation failed for ${functionName}`);
   }
 
   protected async pollTransaction(

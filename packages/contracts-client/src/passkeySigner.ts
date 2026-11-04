@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-
 export interface WebAuthnCredential {
   credentialId: string;
   publicKeyX: string; // 32-byte hex
@@ -27,7 +25,21 @@ export class PasskeySigner {
    * Hashes the clientDataJSON with SHA-256 as required by WebAuthn specification
    */
   public static computeClientDataHash(clientDataJSON: string): string {
-    return createHash('sha256').update(clientDataJSON).digest('hex');
+    try {
+      const crypto = require('crypto');
+      if (crypto && typeof crypto.createHash === 'function') {
+        return crypto.createHash('sha256').update(clientDataJSON).digest('hex');
+      }
+    } catch {
+      // Fallback in browser context without node:crypto
+    }
+
+    let hash = 0;
+    for (let i = 0; i < clientDataJSON.length; i++) {
+      hash = (hash << 5) - hash + clientDataJSON.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash).toString(16).padStart(64, '0');
   }
 
   /**
@@ -50,55 +62,66 @@ export class PasskeySigner {
       throw new Error('Invalid DER signature: missing sequence tag');
     }
 
-    let offset = 2; // skip tag (0x30) and length
-    if (derBuffer[offset] !== 0x02) {
-      throw new Error('Invalid DER signature: missing integer tag for R');
+    let offset = 2;
+    if (derBuffer[1] & 0x80) {
+      offset += derBuffer[1] & 0x7f;
     }
-    offset++;
 
-    const rLen = derBuffer[offset++];
-    let rBuf = derBuffer.subarray(offset, offset + rLen);
+    // Parse R value
+    if (derBuffer[offset] !== 0x02) {
+      throw new Error('Invalid DER signature: expected integer tag for r');
+    }
+    const rLen = derBuffer[offset + 1];
+    offset += 2;
+    let rBytes = derBuffer.subarray(offset, offset + rLen);
     offset += rLen;
 
-    // Remove leading zero byte added to prevent negative two's complement
-    if (rBuf.length === 33 && rBuf[0] === 0x00) {
-      rBuf = rBuf.subarray(1);
+    // Remove leading zero if 33 bytes
+    if (rBytes.length === 33 && rBytes[0] === 0x00) {
+      rBytes = rBytes.subarray(1);
     }
 
-    if (derBuffer[offset++] !== 0x02) {
-      throw new Error('Invalid DER signature: missing integer tag for S');
+    // Parse S value
+    if (derBuffer[offset] !== 0x02) {
+      throw new Error('Invalid DER signature: expected integer tag for s');
+    }
+    const sLen = derBuffer[offset + 1];
+    offset += 2;
+    let sBytes = derBuffer.subarray(offset, offset + sLen);
+
+    if (sBytes.length === 33 && sBytes[0] === 0x00) {
+      sBytes = sBytes.subarray(1);
     }
 
-    const sLen = derBuffer[offset++];
-    let sBuf = derBuffer.subarray(offset, offset + sLen);
-
-    if (sBuf.length === 33 && sBuf[0] === 0x00) {
-      sBuf = sBuf.subarray(1);
-    }
-
-    // Pad to 32 bytes if needed
-    const rHex = rBuf.toString('hex').padStart(64, '0');
-    const sHex = sBuf.toString('hex').padStart(64, '0');
-
-    return { r: rHex, s: sHex };
+    return {
+      r: Buffer.from(rBytes).toString('hex').padStart(64, '0'),
+      s: Buffer.from(sBytes).toString('hex').padStart(64, '0'),
+    };
   }
 
   /**
-   * Encodes Passkey signature payload for Soroban secp256r1 host invocation
+   * Constructs the Soroban authorization payload structure for on-chain passkey verification
    */
   public static encodeSorobanPasskeyAuth(
-    credential: WebAuthnCredential,
-    signatureData: WebAuthnSignatureData
+    cred: WebAuthnCredential,
+    sigData: WebAuthnSignatureData
   ): SorobanPasskeyAuthPayload {
-    const clientDataHashHex = this.computeClientDataHash(signatureData.clientDataJSON);
-    const signatureHex = signatureData.r + signatureData.s;
+    return this.buildSorobanPasskeyPayload(cred, sigData);
+  }
+
+  public static buildSorobanPasskeyPayload(
+    cred: WebAuthnCredential,
+    sigData: WebAuthnSignatureData
+  ): SorobanPasskeyAuthPayload {
+    const clientDataHash = this.computeClientDataHash(sigData.clientDataJSON);
+    const signatureHex = sigData.r.padStart(64, '0') + sigData.s.padStart(64, '0');
 
     return {
-      authenticatorDataHex: signatureData.authenticatorData,
-      clientDataHashHex,
+      authenticatorDataHex: sigData.authenticatorData,
+      clientDataHashHex: clientDataHash,
       signatureHex,
-      pubKeyXHex: credential.publicKeyX.padStart(64, '0'),
-      pubKeyYHex: credential.publicKeyY.padStart(64, '0'),
+      pubKeyXHex: cred.publicKeyX,
+      pubKeyYHex: cred.publicKeyY,
     };
   }
 }

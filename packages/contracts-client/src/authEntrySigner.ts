@@ -74,7 +74,7 @@ export class AuthEntryBuilder {
       credentials: this.entry.credentials,
       invocation: this.entry.rootInvocation,
     });
-    const signature = signerKeypair.sign(Buffer.from(payload)).toString('base64');
+    const signature = Buffer.from(signerKeypair.sign(Buffer.from(payload)) as unknown as Uint8Array).toString('base64');
 
     this.entry.signature = signature;
     this.entry.isSigned = true;

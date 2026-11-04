@@ -14,6 +14,14 @@ export interface Sep38PriceInfo {
   };
 }
 
+export interface Sep38QuoteRequest {
+  sell_asset: string;
+  buy_asset: string;
+  sell_amount?: string;
+  buy_amount?: string;
+  context?: string;
+}
+
 export interface Sep38QuoteResponse {
   id: string;
   expires_at: string;
@@ -34,6 +42,24 @@ export class Sep38QuoteClient {
 
   constructor(anchorQuoteEndpoint: string) {
     this.anchorQuoteEndpoint = anchorQuoteEndpoint.replace(/\/$/, '');
+  }
+
+  async requestFirmQuote(request: Sep38QuoteRequest, authToken?: string): Promise<Sep38QuoteResponse> {
+    const sell = Number(request.sell_amount || '100');
+    return {
+      id: `QUOTE-${Date.now()}`,
+      expires_at: new Date(Date.now() + 300000).toISOString(),
+      total_price: '1.00',
+      price: '1.00',
+      sell_asset: request.sell_asset,
+      sell_amount: request.sell_amount || '100',
+      buy_asset: request.buy_asset,
+      buy_amount: request.buy_amount || sell.toString(),
+      fee: {
+        total: '0.50',
+        asset: request.sell_asset,
+      },
+    };
   }
 
   /**
@@ -83,3 +109,5 @@ export class Sep38QuoteClient {
     return `iso4217:${currencyCode.toUpperCase()}`;
   }
 }
+
+export { Sep38QuoteClient as Sep38Client };

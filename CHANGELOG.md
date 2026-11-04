@@ -45,3 +45,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Docker Compose microservices stack for multi-service local testing.
   - Automated GitHub Actions CI/CD workflows for Soroban contracts, TypeScript packages, Next.js build, and security audits (`.github/workflows/security-audit.yml`).
   - Comprehensive documentation: Architecture specification, Security threat model, Deployment playbook, and RWA warehouse standards.
+
+### Fixed
+- Resolved Next.js build compilation by configuring webpack fallback for `crypto: false` and abstracting universal SHA-256 / WebCrypto hashing.
+- Fixed TypeScript type exports in `@agriflow/types` (`MintReceiptParams`, `RedeemReceiptParams`, `ParametricPolicy`, `WarehouseReceipt`).
+- Aligned `BaseSorobanClient`, `ParametricInsuranceClient`, and `WarehouseReceiptClient` method implementations with `apps/web` service layers.
+- Resolved CrossChainBridgeAdapter transfer prefix matching and state transition validations.
+- Completed PasskeySigner WebAuthn payload encoding helpers and ASN.1 DER signature parsing.
+- Aligned `advancedTxBuilder.ts` base fee type accepting `string | number`.

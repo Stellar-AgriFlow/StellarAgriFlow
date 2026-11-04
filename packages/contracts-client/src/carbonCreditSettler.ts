@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { computeSha256 } from './utils/crypto';
 
 export type RegenerativePractice =
   | 'NO_TILL'
@@ -86,7 +86,7 @@ export class CarbonCreditSettler {
     }
 
     const payload = `${farmId}:${tonsToRetire}:${beneficiary}:${retiredAtTimestamp}:${memo}`;
-    const proofHash = createHash('sha256').update(payload).digest('hex');
+    const proofHash = computeSha256(payload);
     const certificateId = `CARBON-RET-${proofHash.substring(0, 12).toUpperCase()}`;
 
     return {

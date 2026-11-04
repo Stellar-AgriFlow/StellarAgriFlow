@@ -52,9 +52,9 @@ export class StellarAssetClient extends BaseSorobanClient {
   async getMetadata(): Promise<TokenMetadata> {
     try {
       const [name, symbol, decimals] = await Promise.all([
-        this.readContract('name', []).catch(() => 'Circle USD'),
-        this.readContract('symbol', []).catch(() => 'USDC'),
-        this.readContract('decimals', []).catch(() => 7),
+        this.readContract('name', []).then((v: any) => String(v)).catch(() => 'Circle USD'),
+        this.readContract('symbol', []).then((v: any) => String(v)).catch(() => 'USDC'),
+        this.readContract('decimals', []).then((v: any) => Number(v)).catch(() => 7),
       ]);
 
       return {

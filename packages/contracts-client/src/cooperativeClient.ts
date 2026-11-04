@@ -87,7 +87,10 @@ export class CooperativeVaultClient extends BaseSorobanClient {
   async getProposal(proposalId: number): Promise<BulkProcurementProposal> {
     try {
       const result = await this.readContract('get_proposal', []);
-      return (result as unknown as BulkProcurementProposal) || {
+      if (result && typeof result === 'object' && 'id' in result && (result as any).id !== undefined) {
+        return result as unknown as BulkProcurementProposal;
+      }
+      return {
         id: proposalId,
         proposer: '',
         title: 'Bulk Fertilizer Order',
