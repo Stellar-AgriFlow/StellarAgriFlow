@@ -19,6 +19,7 @@ export * from './timeBoundValidator';
 export * from './multiSigCoordinator';
 export * from './muxedAccountHelper';
 export * from './authEntrySigner';
+export * from './ledgerTtlTracker';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
