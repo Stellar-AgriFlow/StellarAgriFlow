@@ -12,6 +12,7 @@ import { ClaimableEscrowCard, ClaimableEscrowItem } from '../../components/coope
 import { MultiSigStatusBadge } from '../../components/cooperative/MultiSigStatusBadge';
 import { ContractTtlGauge } from '../../components/cooperative/ContractTtlGauge';
 import { CrossContractTraceModal } from '../../components/cooperative/CrossContractTraceModal';
+import { CarbonOffsetBadge } from '../../components/cooperative/CarbonOffsetBadge';
 import { CrossContractInvocationNode, InvocationTraceSummary } from '../../../../../packages/contracts-client/src/crossContractAdapter';
 
 const MOCK_PROPOSALS: BulkProcurementProposal[] = [
@@ -62,8 +63,15 @@ export default function CooperativeDashboardPage() {
   const [hasUserSignedMultiSig, setHasUserSignedMultiSig] = useState<boolean>(false);
   const [currentLedger, setCurrentLedger] = useState<number>(154000);
   const [liveUntilLedger, setLiveUntilLedger] = useState<number>(205840);
+  const [carbonBalance, setCarbonBalance] = useState<number>(45);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'executed'>('all');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  const handleRetireCarbonCredits = async (tons: number) => {
+    setCarbonBalance((prev) => Math.max(0, prev - tons));
+    setActionNotice(`Successfully retired ${tons} tons CO2e on Soroban SAC burn! Certificate issued.`);
+    setTimeout(() => setActionNotice(null), 4000);
+  };
 
   const handleBumpTtl = async (bumpAmount: number) => {
     setLiveUntilLedger((prev) => prev + bumpAmount);
@@ -348,14 +356,22 @@ export default function CooperativeDashboardPage() {
           ))}
         </div>
 
-        {/* Contract State & Storage TTL Health */}
-        <div className="pt-2">
+        {/* Contract State & Carbon Offsets Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
           <ContractTtlGauge
             contractName="Soroban Cooperative Vault"
             contractId="CACOOPVAULTA4GRICULTURESTREASURYSTK6QUORUMVOTING88888888"
             currentLedger={currentLedger}
             liveUntilLedger={liveUntilLedger}
             onBumpTtl={handleBumpTtl}
+          />
+          <CarbonOffsetBadge
+            farmName="Eldoret Agroforestry Co-op Farm"
+            hectares={35}
+            practice="Agroforestry & No-Till"
+            verifiedTonsCo2={147}
+            tokenBalance={carbonBalance}
+            onRetireCredits={handleRetireCarbonCredits}
           />
         </div>
 
