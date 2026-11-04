@@ -14,6 +14,7 @@ import { ContractTtlGauge } from '../../components/cooperative/ContractTtlGauge'
 import { CrossContractTraceModal } from '../../components/cooperative/CrossContractTraceModal';
 import { CarbonOffsetBadge } from '../../components/cooperative/CarbonOffsetBadge';
 import { EmergencyPauseControl, ModulePauseItem } from '../../components/cooperative/EmergencyPauseControl';
+import { ProofOfReserveBanner } from '../../components/cooperative/ProofOfReserveBanner';
 import { ContractModule } from '../../../../../packages/contracts-client/src/emergencyPauseManager';
 import { CrossContractInvocationNode, InvocationTraceSummary } from '../../../../../packages/contracts-client/src/crossContractAdapter';
 
@@ -266,6 +267,16 @@ export default function CooperativeDashboardPage() {
             <span>{actionNotice}</span>
           </div>
         )}
+
+        {/* Proof of Reserve Silo Solvency Banner */}
+        <ProofOfReserveBanner
+          commoditySymbol="MAIZE"
+          circulatingTokens={3000}
+          physicalSiloTonnes={3250}
+          collateralizationRatioPercent={108.3}
+          lastAuditedTimestamp={Math.floor(Date.now() / 1000) - 86400 * 2}
+          silosCount={3}
+        />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
