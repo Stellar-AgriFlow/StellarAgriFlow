@@ -10,6 +10,7 @@ import { WithdrawSavingsModal } from '../../components/cooperative/WithdrawSavin
 import { DividendDistributionModal } from '../../components/cooperative/DividendDistributionModal';
 import { ClaimableEscrowCard, ClaimableEscrowItem } from '../../components/cooperative/ClaimableEscrowCard';
 import { MultiSigStatusBadge } from '../../components/cooperative/MultiSigStatusBadge';
+import { ContractTtlGauge } from '../../components/cooperative/ContractTtlGauge';
 
 const MOCK_PROPOSALS: BulkProcurementProposal[] = [
   {
@@ -56,8 +57,16 @@ export default function CooperativeDashboardPage() {
   const [walletBalance, setWalletBalance] = useState<number>(10000);
   const [multiSigWeight, setMultiSigWeight] = useState<number>(2);
   const [hasUserSignedMultiSig, setHasUserSignedMultiSig] = useState<boolean>(false);
+  const [currentLedger, setCurrentLedger] = useState<number>(154000);
+  const [liveUntilLedger, setLiveUntilLedger] = useState<number>(205840);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'executed'>('all');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  const handleBumpTtl = async (bumpAmount: number) => {
+    setLiveUntilLedger((prev) => prev + bumpAmount);
+    setActionNotice(`Soroban storage TTL successfully extended by ${bumpAmount.toLocaleString()} ledgers!`);
+    setTimeout(() => setActionNotice(null), 4000);
+  };
 
   const [escrows, setEscrows] = useState<ClaimableEscrowItem[]>([
     {
@@ -327,6 +336,17 @@ export default function CooperativeDashboardPage() {
               isAdmin={true}
             />
           ))}
+        </div>
+
+        {/* Contract State & Storage TTL Health */}
+        <div className="pt-2">
+          <ContractTtlGauge
+            contractName="Soroban Cooperative Vault"
+            contractId="CACOOPVAULTA4GRICULTURESTREASURYSTK6QUORUMVOTING88888888"
+            currentLedger={currentLedger}
+            liveUntilLedger={liveUntilLedger}
+            onBumpTtl={handleBumpTtl}
+          />
         </div>
 
         {/* Time-Locked Claimable Escrows */}
