@@ -57,7 +57,7 @@ export class EmergencyPauseManager {
       throw new Error(`Unauthorized: Address ${guardianAddress} is not a registered emergency guardian`);
     }
 
-    const state = this.moduleStates.get(module) || { module, isPaused: false };
+    const state = { ...(this.moduleStates.get(module) || { module, isPaused: false }) };
     if (state.isPaused) {
       throw new Error(`Module ${module} is already paused`);
     }
@@ -70,7 +70,7 @@ export class EmergencyPauseManager {
     state.unpauseRequestedBy = undefined;
 
     this.moduleStates.set(module, state);
-    return state;
+    return { ...state };
   }
 
   public requestTimelockedUnpause(
@@ -83,7 +83,7 @@ export class EmergencyPauseManager {
       throw new Error(`Unauthorized: Address ${guardianAddress} is not a registered emergency guardian`);
     }
 
-    const state = this.moduleStates.get(module);
+    const state = { ...this.moduleStates.get(module)! };
     if (!state || !state.isPaused) {
       throw new Error(`Cannot request unpause: Module ${module} is not currently paused`);
     }
@@ -91,11 +91,12 @@ export class EmergencyPauseManager {
     state.timelockUnpauseLedger = currentLedger + timelockDelayLedgers;
     state.unpauseRequestedBy = guardianAddress;
 
-    return state;
+    this.moduleStates.set(module, state);
+    return { ...state };
   }
 
   public executeUnpause(module: ContractModule, currentLedger: number): ModulePauseRecord {
-    const state = this.moduleStates.get(module);
+    const state = { ...this.moduleStates.get(module)! };
     if (!state || !state.isPaused) {
       throw new Error(`Cannot execute unpause: Module ${module} is not paused`);
     }
@@ -115,7 +116,8 @@ export class EmergencyPauseManager {
     state.timelockUnpauseLedger = undefined;
     state.unpauseRequestedBy = undefined;
 
-    return state;
+    this.moduleStates.set(module, state);
+    return { ...state };
   }
 
   public isModuleOperational(module: ContractModule): boolean {
