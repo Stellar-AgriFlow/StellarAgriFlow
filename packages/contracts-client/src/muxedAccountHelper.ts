@@ -45,8 +45,7 @@ export class MuxedAccountHelper {
 
     if (MuxedAccountHelper.isMuxedAccount(address)) {
       try {
-        const dummyAccount = new Account(address, '0');
-        const muxed = new MuxedAccount(dummyAccount, '0');
+        const muxed = MuxedAccount.fromAddress(address, '0');
         const baseKey = muxed.baseAccount().accountId();
         const userId = muxed.id();
 
