@@ -19,6 +19,7 @@ export * from './authEntry';
 export * from './crossContract';
 export * from './telemetry';
 export * from './emergency';
+export * from './proofOfReserve';
 export * from './zod/farmSchemas';
 export * from './zod/escrowSchemas';
 export * from './zod/loanSchemas';
