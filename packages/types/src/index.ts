@@ -15,6 +15,7 @@ export * from './cooperative';
 export * from './interest';
 export * from './claimableBalance';
 export * from './timeBounds';
+export * from './authEntry';
 export * from './zod/farmSchemas';
 export * from './zod/escrowSchemas';
 export * from './zod/loanSchemas';
