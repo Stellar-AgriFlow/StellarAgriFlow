@@ -24,6 +24,7 @@ export * from './transactionSimulator';
 export * from './crossContractAdapter';
 export * from './passkeySigner';
 export * from './assetConversionRouter';
+export * from './telemetryExporter';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
