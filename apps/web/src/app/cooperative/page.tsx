@@ -9,6 +9,7 @@ import { DepositSavingsModal } from '../../components/cooperative/DepositSavings
 import { WithdrawSavingsModal } from '../../components/cooperative/WithdrawSavingsModal';
 import { DividendDistributionModal } from '../../components/cooperative/DividendDistributionModal';
 import { ClaimableEscrowCard, ClaimableEscrowItem } from '../../components/cooperative/ClaimableEscrowCard';
+import { MultiSigStatusBadge } from '../../components/cooperative/MultiSigStatusBadge';
 
 const MOCK_PROPOSALS: BulkProcurementProposal[] = [
   {
@@ -53,6 +54,8 @@ export default function CooperativeDashboardPage() {
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [isDividendOpen, setIsDividendOpen] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number>(10000);
+  const [multiSigWeight, setMultiSigWeight] = useState<number>(2);
+  const [hasUserSignedMultiSig, setHasUserSignedMultiSig] = useState<boolean>(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'executed'>('all');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
@@ -106,6 +109,13 @@ export default function CooperativeDashboardPage() {
     setWalletBalance((prev) => prev + amount);
     setTreasuryBalance((prev) => Math.max(0, prev - amount));
     setActionNotice(`Withdrew ${amount.toLocaleString()} USDC from cooperative treasury.`);
+    setTimeout(() => setActionNotice(null), 4000);
+  };
+
+  const handleSignMultiSigEnvelope = async () => {
+    setMultiSigWeight((prev) => prev + 1);
+    setHasUserSignedMultiSig(true);
+    setActionNotice('Multi-sig signature appended to pending transaction envelope.');
     setTimeout(() => setActionNotice(null), 4000);
   };
 
@@ -295,6 +305,15 @@ export default function CooperativeDashboardPage() {
             </button>
           ))}
         </div>
+
+        {/* Multi-Sig Status Tracker */}
+        <MultiSigStatusBadge
+          collectedWeight={multiSigWeight}
+          requiredWeight={3}
+          isSigner={true}
+          hasUserSigned={hasUserSignedMultiSig}
+          onSign={handleSignMultiSigEnvelope}
+        />
 
         {/* Proposals List */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
