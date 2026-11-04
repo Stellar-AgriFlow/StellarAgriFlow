@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Landmark, Users, Plus, PiggyBank, ArrowDownLeft, ShieldCheck, CheckCircle } from 'lucide-react';
+import { Landmark, Users, Plus, PiggyBank, ArrowDownLeft, ShieldCheck, CheckCircle, Network } from 'lucide-react';
 import { BulkProcurementProposal, ProposalStatus, SubmitProposalParams } from '@agriflow/types';
 import { ProposalCard } from '../../components/cooperative/ProposalCard';
 import { CreateProposalModal } from '../../components/cooperative/CreateProposalModal';
@@ -11,6 +11,8 @@ import { DividendDistributionModal } from '../../components/cooperative/Dividend
 import { ClaimableEscrowCard, ClaimableEscrowItem } from '../../components/cooperative/ClaimableEscrowCard';
 import { MultiSigStatusBadge } from '../../components/cooperative/MultiSigStatusBadge';
 import { ContractTtlGauge } from '../../components/cooperative/ContractTtlGauge';
+import { CrossContractTraceModal } from '../../components/cooperative/CrossContractTraceModal';
+import { CrossContractInvocationNode, InvocationTraceSummary } from '../../../../../packages/contracts-client/src/crossContractAdapter';
 
 const MOCK_PROPOSALS: BulkProcurementProposal[] = [
   {
@@ -54,6 +56,7 @@ export default function CooperativeDashboardPage() {
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [isDividendOpen, setIsDividendOpen] = useState(false);
+  const [isTraceOpen, setIsTraceOpen] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number>(10000);
   const [multiSigWeight, setMultiSigWeight] = useState<number>(2);
   const [hasUserSignedMultiSig, setHasUserSignedMultiSig] = useState<boolean>(false);
@@ -203,6 +206,13 @@ export default function CooperativeDashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsTraceOpen(true)}
+              className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl text-sm font-semibold flex items-center gap-2 border border-slate-800 transition"
+            >
+              <Network className="w-4 h-4 text-emerald-400" />
+              Trace Call DAG
+            </button>
             <button
               onClick={() => setIsDividendOpen(true)}
               className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-amber-950 transition"
@@ -402,6 +412,62 @@ export default function CooperativeDashboardPage() {
           onClose={() => setIsDividendOpen(false)}
           onDistribute={handleDistributeDividends}
           treasuryBalance={treasuryBalance}
+        />
+
+        {/* Cross-Contract Call DAG Trace Modal */}
+        <CrossContractTraceModal
+          isOpen={isTraceOpen}
+          onClose={() => setIsTraceOpen(false)}
+          rootNode={{
+            id: 'call_1',
+            contractId: 'CACOOPVAULTA4GRICULTURESTREASURYSTK6QUORUMVOTING88888888',
+            contractName: 'CooperativeVault',
+            functionName: 'execute_bulk_procurement',
+            args: ['PROPOSAL-1', 14500],
+            depth: 0,
+            cpuInstructionsUsed: 310000,
+            memoryBytesUsed: 6144,
+            status: 'SUCCESS',
+            children: [
+              {
+                id: 'call_2',
+                contractId: 'CESCROW222222222222222222222222222222222222222222222222222',
+                contractName: 'AgriculturalEscrow',
+                functionName: 'lock_procurement_payment',
+                args: [14500],
+                depth: 1,
+                cpuInstructionsUsed: 145000,
+                memoryBytesUsed: 3072,
+                status: 'SUCCESS',
+                children: [],
+              },
+              {
+                id: 'call_3',
+                contractId: 'CWAREHOUSE333333333333333333333333333333333333333333333333',
+                contractName: 'WarehouseReceipt',
+                functionName: 'reserve_batch_allocation',
+                args: ['BATCH-NPK-Q1'],
+                depth: 1,
+                cpuInstructionsUsed: 180000,
+                memoryBytesUsed: 4096,
+                status: 'SUCCESS',
+                children: [],
+              },
+            ],
+          }}
+          summary={{
+            rootContractId: 'CACOOPVAULTA4GRICULTURESTREASURYSTK6QUORUMVOTING88888888',
+            totalNodes: 3,
+            maxDepth: 1,
+            totalCpuInstructions: 635000,
+            totalMemoryBytes: 13312,
+            hasFailures: false,
+            involvedContracts: [
+              'CACOOPVAULTA4GRICULTURESTREASURYSTK6QUORUMVOTING88888888',
+              'CESCROW222222222222222222222222222222222222222222222222222',
+              'CWAREHOUSE333333333333333333333333333333333333333333333333',
+            ],
+          }}
         />
       </div>
     </div>
