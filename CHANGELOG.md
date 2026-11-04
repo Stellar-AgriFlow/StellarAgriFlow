@@ -53,3 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved CrossChainBridgeAdapter transfer prefix matching and state transition validations.
 - Completed PasskeySigner WebAuthn payload encoding helpers and ASN.1 DER signature parsing.
 - Aligned `advancedTxBuilder.ts` base fee type accepting `string | number`.
+- Corrected pnpm action setup version (`9.15.9`) across CI workflows, resolving post-job setup-node cache path errors.
+- Applied `cargo fmt` formatting across all 9 Soroban smart contracts ensuring strict CI formatting compliance.
+- Updated `security-audit.yml` to target `contracts/Cargo.lock` with resilient fallbacks for continuous dependency vulnerability auditing.
+- Streamlined `apps/web/package.json` lint script to `tsc --noEmit` to eliminate interactive prompts in headless CI environments.
