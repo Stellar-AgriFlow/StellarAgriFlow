@@ -28,6 +28,7 @@ export * from './telemetryExporter';
 export * from './carbonCreditSettler';
 export * from './geoFenceValidator';
 export * from './emergencyPauseManager';
+export * from './crossChainBridgeAdapter';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
