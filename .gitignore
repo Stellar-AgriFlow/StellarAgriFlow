@@ -21,3 +21,6 @@ services/**/data
 test_snapshots
 contracts/**/test_snapshots
 *.tsbuildinfo
+
+.vercel
+.env*

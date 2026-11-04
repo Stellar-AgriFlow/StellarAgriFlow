@@ -1,11 +1,19 @@
-# AgriFlow: Global Agricultural Financial & Trade Protocol
+<p align="center">
+  <a href="https://stellar-agriflow.vercel.app">
+    <img src="./logo.svg" alt="AgriFlow Logo" width="130" height="130" />
+  </a>
+</p>
 
-[![Live Application](https://img.shields.io/badge/Live%20App-stellar--agriflow.vercel.app-00DC82?style=for-the-badge&logo=vercel&logoColor=white)](https://stellar-agriflow.vercel.app)
-[![Network](https://img.shields.io/badge/Stellar-Testnet-blue?style=for-the-badge&logo=stellar&logoColor=white)](https://stellar.expert/explorer/testnet)
-[![Soroban Smart Contracts](https://img.shields.io/badge/Soroban-Rust%20Contracts-orange?style=for-the-badge&logo=rust&logoColor=white)](https://soroban.stellar.org)
-[![Tests Passing](https://img.shields.io/badge/Tests-56%20Passing-brightgreen?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/Stellar-AgriFlow/StellarAgriFlow/actions)
-[![Contracts](https://img.shields.io/badge/Soroban%20Contracts-15%20Passing-orange?style=for-the-badge&logo=rust&logoColor=white)](https://github.com/Stellar-AgriFlow/StellarAgriFlow/actions)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge)](./LICENSE)
+<h1 align="center">AgriFlow: Global Agricultural Financial & Trade Protocol</h1>
+
+<p align="center">
+  <a href="https://stellar-agriflow.vercel.app"><img src="https://img.shields.io/badge/Live%20App-stellar--agriflow.vercel.app-00DC82?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Application" /></a>
+  <a href="https://stellar.expert/explorer/testnet"><img src="https://img.shields.io/badge/Network-Stellar%20Testnet-blue?style=for-the-badge&logo=stellar&logoColor=white" alt="Stellar Testnet" /></a>
+  <a href="https://soroban.stellar.org"><img src="https://img.shields.io/badge/Smart%20Contracts-Soroban%20Rust-orange?style=for-the-badge&logo=rust&logoColor=white" alt="Soroban Rust" /></a>
+  <a href="https://github.com/Stellar-AgriFlow/StellarAgriFlow/actions"><img src="https://img.shields.io/badge/Tests-79%20Suites%20Passing-brightgreen?style=for-the-badge&logo=vitest&logoColor=white" alt="Tests" /></a>
+  <a href="https://github.com/Stellar-AgriFlow/StellarAgriFlow/actions"><img src="https://img.shields.io/badge/Contracts-9%20Tested%20%26%20Verified-orange?style=for-the-badge&logo=rust&logoColor=white" alt="Contracts" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="License" /></a>
+</p>
 
 **Institutional-grade decentralized agricultural finance, on-chain Farm Passports, marketplace trade, non-custodial escrow, and cross-contract reputation powered by Stellar and Soroban.**
 
