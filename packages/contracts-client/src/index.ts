@@ -30,6 +30,7 @@ export * from './geoFenceValidator';
 export * from './emergencyPauseManager';
 export * from './crossChainBridgeAdapter';
 export * from './reputationBondEscrow';
+export * from './proofOfReserveValidator';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
