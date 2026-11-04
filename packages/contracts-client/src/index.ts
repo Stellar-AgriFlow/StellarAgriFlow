@@ -20,6 +20,7 @@ export * from './multiSigCoordinator';
 export * from './muxedAccountHelper';
 export * from './authEntrySigner';
 export * from './ledgerTtlTracker';
+export * from './transactionSimulator';
 export * from './events';
 export * from './indexer';
 export * from './offlineCache';
