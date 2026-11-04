@@ -71,27 +71,40 @@ impl ParametricInsuranceContract {
         env.storage()
             .instance()
             .set(&DataKey::WeatherOracleContract, &weather_oracle_contract);
-        env.storage().instance().set(&DataKey::TotalLiquidity, &0i128);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalLiquidity, &0i128);
         env.storage().instance().set(&DataKey::TotalShares, &0i128);
         env.storage().instance().set(&DataKey::PolicyCount, &0u32);
         env.storage().instance().set(&DataKey::Paused, &false);
 
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         env.events().publish((symbol_short!("ins_init"),), admin);
         Ok(())
     }
 
     pub fn get_admin(env: Env) -> Result<Address, InsuranceError> {
-        env.storage().instance().get(&DataKey::Admin).ok_or(InsuranceError::NotInitialized)
+        env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(InsuranceError::NotInitialized)
     }
 
     pub fn get_total_liquidity(env: Env) -> i128 {
-        env.storage().instance().get(&DataKey::TotalLiquidity).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalLiquidity)
+            .unwrap_or(0)
     }
 
     pub fn get_policy_count(env: Env) -> u32 {
-        env.storage().instance().get(&DataKey::PolicyCount).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::PolicyCount)
+            .unwrap_or(0)
     }
 
     pub fn set_paused(env: Env, admin: Address, paused: bool) -> Result<(), InsuranceError> {
@@ -106,14 +119,19 @@ impl ParametricInsuranceContract {
         }
 
         env.storage().instance().set(&DataKey::Paused, &paused);
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         env.events().publish((symbol_short!("ins_pause"),), paused);
         Ok(())
     }
 
     pub fn is_paused(env: Env) -> bool {
-        env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
     }
 
     /// Deposit underwriting liquidity into the insurance pool and receive LP shares
@@ -130,8 +148,16 @@ impl ParametricInsuranceContract {
             return Err(InsuranceError::InvalidAmount);
         }
 
-        let total_liq: i128 = env.storage().instance().get(&DataKey::TotalLiquidity).unwrap_or(0);
-        let total_shares: i128 = env.storage().instance().get(&DataKey::TotalShares).unwrap_or(0);
+        let total_liq: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalLiquidity)
+            .unwrap_or(0);
+        let total_shares: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalShares)
+            .unwrap_or(0);
 
         let shares_to_mint = if total_shares == 0 || total_liq == 0 {
             amount
@@ -139,17 +165,33 @@ impl ParametricInsuranceContract {
             (amount * total_shares) / total_liq
         };
 
-        let current_user_shares: i128 = env.storage().persistent().get(&DataKey::Shares(provider.clone())).unwrap_or(0);
+        let current_user_shares: i128 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Shares(provider.clone()))
+            .unwrap_or(0);
         let new_user_shares = current_user_shares + shares_to_mint;
         let new_total_shares = total_shares + shares_to_mint;
         let new_total_liq = total_liq + amount;
 
-        env.storage().persistent().set(&DataKey::Shares(provider.clone()), &new_user_shares);
-        env.storage().instance().set(&DataKey::TotalShares, &new_total_shares);
-        env.storage().instance().set(&DataKey::TotalLiquidity, &new_total_liq);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Shares(provider.clone()), &new_user_shares);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalShares, &new_total_shares);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalLiquidity, &new_total_liq);
 
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
-        env.storage().persistent().extend_ttl(&DataKey::Shares(provider.clone()), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Shares(provider.clone()),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (symbol_short!("lp_dep"), provider),
@@ -170,13 +212,25 @@ impl ParametricInsuranceContract {
             return Err(InsuranceError::InvalidAmount);
         }
 
-        let current_user_shares: i128 = env.storage().persistent().get(&DataKey::Shares(provider.clone())).unwrap_or(0);
+        let current_user_shares: i128 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Shares(provider.clone()))
+            .unwrap_or(0);
         if current_user_shares < shares_to_burn {
             return Err(InsuranceError::Unauthorized);
         }
 
-        let total_liq: i128 = env.storage().instance().get(&DataKey::TotalLiquidity).unwrap_or(0);
-        let total_shares: i128 = env.storage().instance().get(&DataKey::TotalShares).unwrap_or(0);
+        let total_liq: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalLiquidity)
+            .unwrap_or(0);
+        let total_shares: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalShares)
+            .unwrap_or(0);
 
         if total_shares == 0 {
             return Err(InsuranceError::InsufficientPoolLiquidity);
@@ -191,12 +245,24 @@ impl ParametricInsuranceContract {
         let new_total_shares = total_shares - shares_to_burn;
         let new_total_liq = total_liq - payout_amount;
 
-        env.storage().persistent().set(&DataKey::Shares(provider.clone()), &new_user_shares);
-        env.storage().instance().set(&DataKey::TotalShares, &new_total_shares);
-        env.storage().instance().set(&DataKey::TotalLiquidity, &new_total_liq);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Shares(provider.clone()), &new_user_shares);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalShares, &new_total_shares);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalLiquidity, &new_total_liq);
 
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
-        env.storage().persistent().extend_ttl(&DataKey::Shares(provider.clone()), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Shares(provider.clone()),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (symbol_short!("lp_wdr"), provider),
@@ -228,14 +294,22 @@ impl ParametricInsuranceContract {
             return Err(InsuranceError::InvalidAmount);
         }
 
-        let total_liq: i128 = env.storage().instance().get(&DataKey::TotalLiquidity).unwrap_or(0);
+        let total_liq: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalLiquidity)
+            .unwrap_or(0);
         if total_liq < payout_amount {
             return Err(InsuranceError::InsufficientPoolLiquidity);
         }
 
         let premium = Self::calculate_premium(env.clone(), payout_amount, duration_days);
 
-        let mut count: u32 = env.storage().instance().get(&DataKey::PolicyCount).unwrap_or(0);
+        let mut count: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::PolicyCount)
+            .unwrap_or(0);
         count += 1;
 
         let policy = InsurancePolicy {
@@ -252,13 +326,23 @@ impl ParametricInsuranceContract {
         };
 
         let new_total_liq = total_liq + premium;
-        env.storage().instance().set(&DataKey::TotalLiquidity, &new_total_liq);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalLiquidity, &new_total_liq);
 
-        env.storage().persistent().set(&DataKey::Policy(count), &policy);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Policy(count), &policy);
         env.storage().instance().set(&DataKey::PolicyCount, &count);
 
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
-        env.storage().persistent().extend_ttl(&DataKey::Policy(count), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Policy(count),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (symbol_short!("pol_buy"), count),
@@ -314,19 +398,33 @@ impl ParametricInsuranceContract {
             return Err(InsuranceError::TriggerConditionNotMet);
         }
 
-        let total_liq: i128 = env.storage().instance().get(&DataKey::TotalLiquidity).unwrap_or(0);
+        let total_liq: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalLiquidity)
+            .unwrap_or(0);
         if total_liq < policy.payout_amount {
             return Err(InsuranceError::InsufficientPoolLiquidity);
         }
 
         let new_total_liq = total_liq - policy.payout_amount;
-        env.storage().instance().set(&DataKey::TotalLiquidity, &new_total_liq);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalLiquidity, &new_total_liq);
 
         policy.is_paid = true;
-        env.storage().persistent().set(&DataKey::Policy(policy_id), &policy);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Policy(policy_id), &policy);
 
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
-        env.storage().persistent().extend_ttl(&DataKey::Policy(policy_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Policy(policy_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (symbol_short!("pol_pay"), policy_id),
@@ -337,11 +435,7 @@ impl ParametricInsuranceContract {
     }
 
     /// Expire policy once coverage duration elapses without a disaster trigger
-    pub fn expire_policy(
-        env: Env,
-        caller: Address,
-        policy_id: u32,
-    ) -> Result<(), InsuranceError> {
+    pub fn expire_policy(env: Env, caller: Address, policy_id: u32) -> Result<(), InsuranceError> {
         caller.require_auth();
         let mut policy = Self::get_policy(env.clone(), policy_id)?;
 
@@ -358,25 +452,37 @@ impl ParametricInsuranceContract {
         }
 
         policy.is_expired = true;
-        env.storage().persistent().set(&DataKey::Policy(policy_id), &policy);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Policy(policy_id), &policy);
 
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
-        env.storage().persistent().extend_ttl(&DataKey::Policy(policy_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
-
-        env.events().publish(
-            (symbol_short!("pol_exp"), policy_id),
-            caller,
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Policy(policy_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
         );
+
+        env.events()
+            .publish((symbol_short!("pol_exp"), policy_id), caller);
 
         Ok(())
     }
 
     pub fn get_user_shares(env: Env, user: Address) -> i128 {
-        env.storage().persistent().get(&DataKey::Shares(user)).unwrap_or(0)
+        env.storage()
+            .persistent()
+            .get(&DataKey::Shares(user))
+            .unwrap_or(0)
     }
 
     pub fn get_total_shares(env: Env) -> i128 {
-        env.storage().instance().get(&DataKey::TotalShares).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalShares)
+            .unwrap_or(0)
     }
 
     /// Retrieve all insurance policies purchased by a specific farmer address

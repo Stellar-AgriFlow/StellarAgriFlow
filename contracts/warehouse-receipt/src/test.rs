@@ -63,14 +63,7 @@ fn test_mint_warehouse_receipt() {
 
     // Mint receipt for 25,000 kg (25 metric tons) at 12.80% moisture
     let receipt_id = client.mint_receipt(
-        &custodian,
-        &farmer,
-        &warehouse,
-        &maize,
-        &25_000,
-        &grade1,
-        &1280,
-        &2026,
+        &custodian, &farmer, &warehouse, &maize, &25_000, &grade1, &1280, &2026,
     );
     assert_eq!(receipt_id, 1);
     assert_eq!(client.get_receipt_count(), 1);
@@ -156,7 +149,10 @@ fn test_burn_receipt_for_redemption() {
 
     // Double redemption should fail
     let double_err = client.try_burn_receipt_for_redemption(&custodian, &receipt_id);
-    assert_eq!(double_err.err(), Some(Ok(ReceiptError::ReceiptAlreadyRedeemed)));
+    assert_eq!(
+        double_err.err(),
+        Some(Ok(ReceiptError::ReceiptAlreadyRedeemed))
+    );
 }
 
 #[test]

@@ -1,7 +1,10 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Events, Ledger}, Address, Env, String};
+use soroban_sdk::{
+    testutils::{Address as _, Events, Ledger},
+    Address, Env, String,
+};
 
 #[test]
 fn test_register_and_get_farm() {
@@ -17,14 +20,7 @@ fn test_register_and_get_farm() {
     let region = String::from_str(&env, "Rift Valley");
     let crop = String::from_str(&env, "Coffee");
 
-    let farm_id = client.register_farm(
-        &farmer,
-        &country,
-        &region,
-        &crop,
-        &50,
-        &120,
-    );
+    let farm_id = client.register_farm(&farmer, &country, &region, &crop, &50, &120);
 
     assert_eq!(farm_id, String::from_str(&env, "AGRI-000001"));
 
@@ -126,7 +122,8 @@ fn test_update_status_authorization() {
     assert!(err_res.is_err());
 
     // Real owner updates status
-    let ok_res = client.try_update_farm_status(&real_owner, &farm_id, &FarmStatus::PendingVerification);
+    let ok_res =
+        client.try_update_farm_status(&real_owner, &farm_id, &FarmStatus::PendingVerification);
     assert!(ok_res.is_ok());
 
     let updated = client.get_farm(&farm_id).unwrap();

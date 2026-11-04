@@ -1,8 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{
-    contract, contractimpl, contracttype, vec, Address, Env, IntoVal, Symbol,
-};
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, IntoVal, Symbol};
 
 const INSTANCE_BUMP_AMOUNT: u32 = 300_000;
 const INSTANCE_LIFETIME_THRESHOLD: u32 = 100_000;
@@ -77,11 +75,15 @@ impl AgriculturalMarketplaceContract {
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
-        env.events().publish((Symbol::new(&env, "MarketplacePaused"),), paused);
+        env.events()
+            .publish((Symbol::new(&env, "MarketplacePaused"),), paused);
     }
 
     pub fn is_paused(env: Env) -> bool {
-        env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
     }
 
     pub fn create_listing(
@@ -112,7 +114,8 @@ impl AgriculturalMarketplaceContract {
             .get::<DataKey, Address>(&DataKey::FarmRegistryContract)
         {
             let args = vec![&env, farm_id.clone().into_val(&env)];
-            let exists: bool = env.invoke_contract(&registry_contract, &Symbol::new(&env, "has_farm"), args);
+            let exists: bool =
+                env.invoke_contract(&registry_contract, &Symbol::new(&env, "has_farm"), args);
             if !exists {
                 panic!("Farm ID does not exist in FarmRegistry");
             }
@@ -139,7 +142,9 @@ impl AgriculturalMarketplaceContract {
             created_at: env.ledger().timestamp(),
         };
 
-        env.storage().instance().set(&DataKey::Listing(count), &listing);
+        env.storage()
+            .instance()
+            .set(&DataKey::Listing(count), &listing);
         env.storage().instance().set(&DataKey::ListingCount, &count);
         env.storage()
             .instance()
@@ -155,11 +160,7 @@ impl AgriculturalMarketplaceContract {
     }
 
     /// Calculate bulk volume wholesale discount on agricultural lots
-    pub fn calculate_discounted_total(
-        _env: Env,
-        price_per_unit: i128,
-        quantity: u32,
-    ) -> i128 {
+    pub fn calculate_discounted_total(_env: Env, price_per_unit: i128, quantity: u32) -> i128 {
         let raw_total = (quantity as i128)
             .checked_mul(price_per_unit)
             .expect("Overflow");
@@ -186,11 +187,8 @@ impl AgriculturalMarketplaceContract {
             panic!("Seller cannot purchase own listing");
         }
 
-        let total_amount = Self::calculate_discounted_total(
-            env.clone(),
-            listing.price_per_unit,
-            listing.quantity,
-        );
+        let total_amount =
+            Self::calculate_discounted_total(env.clone(), listing.price_per_unit, listing.quantity);
 
         let escrow_contract: Address = env
             .storage()
@@ -201,18 +199,15 @@ impl AgriculturalMarketplaceContract {
         // Inter-contract call: Create Escrow in AgriculturalEscrow contract
         let args = vec![
             &env,
-            buyer.clone().into_val(&env), // caller
-            buyer.clone().into_val(&env), // buyer
+            buyer.clone().into_val(&env),          // caller
+            buyer.clone().into_val(&env),          // buyer
             listing.seller.clone().into_val(&env), // seller
-            listing_id.into_val(&env), // listing_id
-            total_amount.into_val(&env), // amount
+            listing_id.into_val(&env),             // listing_id
+            total_amount.into_val(&env),           // amount
         ];
 
-        let escrow_id: u32 = env.invoke_contract(
-            &escrow_contract,
-            &Symbol::new(&env, "create_escrow"),
-            args,
-        );
+        let escrow_id: u32 =
+            env.invoke_contract(&escrow_contract, &Symbol::new(&env, "create_escrow"), args);
 
         listing.status = 1; // Sold
         listing.escrow_id = escrow_id;
@@ -274,10 +269,8 @@ impl AgriculturalMarketplaceContract {
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
-        env.events().publish(
-            (Symbol::new(&env, "ListingExpired"), listing_id),
-            caller,
-        );
+        env.events()
+            .publish((Symbol::new(&env, "ListingExpired"), listing_id), caller);
     }
 
     pub fn get_listing(env: Env, listing_id: u32) -> ProduceListing {

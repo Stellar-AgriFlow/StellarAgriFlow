@@ -1,7 +1,10 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Ledger as _}, Env};
+use soroban_sdk::{
+    testutils::{Address as _, Ledger as _},
+    Env,
+};
 
 // Dummy mock reputation contract for testutils
 #[contract]
@@ -135,7 +138,8 @@ fn test_dispute_timeout_refund() {
     assert_eq!(disputed.status, 4); // Disputed
 
     // Advance 8 days past 7-day timeout
-    env.ledger().set_timestamp(env.ledger().timestamp() + 8 * 86400);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + 8 * 86400);
 
     // Buyer claims timeout refund
     client.claim_dispute_timeout_refund(&buyer, &escrow_id);

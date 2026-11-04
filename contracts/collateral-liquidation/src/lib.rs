@@ -52,7 +52,6 @@ pub enum DataKey {
     Auction(u64),
 }
 
-
 #[contract]
 pub struct CollateralLiquidationContract;
 
@@ -145,10 +144,8 @@ impl CollateralLiquidationContract {
             .set(&DataKey::Auction(count), &auction);
         env.storage().instance().set(&DataKey::AuctionCount, &count);
 
-        env.events().publish(
-            (symbol_short!("auction"), symbol_short!("started")),
-            count,
-        );
+        env.events()
+            .publish((symbol_short!("auction"), symbol_short!("started")), count);
 
         Ok(count)
     }
@@ -325,13 +322,7 @@ mod test {
 
         // Start auction: start_price = 10,000, reserve_price = 6,000, debt = 7,000, duration = 1000s
         let auction_id = client.start_auction(
-            &admin,
-            &borrower,
-            &101u64,
-            &7000i128,
-            &10000i128,
-            &6000i128,
-            &1000u64,
+            &admin, &borrower, &101u64, &7000i128, &10000i128, &6000i128, &1000u64,
         );
 
         assert_eq!(auction_id, 1);
@@ -372,13 +363,7 @@ mod test {
         client.set_paused(&admin, &true);
 
         let res = client.try_start_auction(
-            &admin,
-            &borrower,
-            &102u64,
-            &5000i128,
-            &8000i128,
-            &4000i128,
-            &500u64,
+            &admin, &borrower, &102u64, &5000i128, &8000i128, &4000i128, &500u64,
         );
         assert!(res.is_err());
     }
@@ -396,13 +381,7 @@ mod test {
 
         client.initialize(&admin);
         let auction_id = client.start_auction(
-            &admin,
-            &borrower,
-            &103u64,
-            &4000i128,
-            &6000i128,
-            &3000i128,
-            &600u64,
+            &admin, &borrower, &103u64, &4000i128, &6000i128, &3000i128, &600u64,
         );
 
         client.cancel_auction(&admin, &auction_id);
@@ -425,12 +404,7 @@ mod test {
 
         client.initialize(&admin);
         let auction_id = client.start_auction(
-            &admin,
-            &borrower,
-            &104u64,
-            &3000i128,
-            &5000i128,
-            &2500i128,
+            &admin, &borrower, &104u64, &3000i128, &5000i128, &2500i128,
             &200u64, // 200s duration
         );
 

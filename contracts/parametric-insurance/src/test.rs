@@ -1,7 +1,10 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Ledger as _}, Env};
+use soroban_sdk::{
+    testutils::{Address as _, Ledger as _},
+    Env,
+};
 
 #[contract]
 pub struct MockWeatherOracle;
@@ -145,7 +148,10 @@ fn test_trigger_policy_payout() {
 
     // Second trigger should fail
     let double_claim = client.try_trigger_policy_payout(&farmer, &policy_id);
-    assert_eq!(double_claim.err(), Some(Ok(InsuranceError::PolicyAlreadyPaid)));
+    assert_eq!(
+        double_claim.err(),
+        Some(Ok(InsuranceError::PolicyAlreadyPaid))
+    );
 }
 
 #[test]
@@ -174,7 +180,8 @@ fn test_expire_policy() {
     );
 
     // Fast-forward 61 days
-    env.ledger().set_timestamp(env.ledger().timestamp() + 61 * 86400);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + 61 * 86400);
 
     client.expire_policy(&farmer, &policy_id);
     let expired = client.get_policy(&policy_id);
@@ -199,7 +206,13 @@ fn test_get_policies_by_farmer() {
     client.initialize(&admin, &oracle_id);
     client.deposit_liquidity(&lp, &50_000_0000);
 
-    client.purchase_policy(&farmer, &Symbol::new(&env, "NG_KANO"), &70, &1_000_0000, &30);
+    client.purchase_policy(
+        &farmer,
+        &Symbol::new(&env, "NG_KANO"),
+        &70,
+        &1_000_0000,
+        &30,
+    );
     client.purchase_policy(&farmer, &Symbol::new(&env, "KE_NAK"), &75, &2_000_0000, &45);
 
     let farmer_policies = client.get_policies_by_farmer(&farmer);
@@ -259,5 +272,8 @@ fn test_insufficient_liquidity_protection() {
         &50_000_0000,
         &90,
     );
-    assert_eq!(err_policy.err(), Some(Ok(InsuranceError::InsufficientPoolLiquidity)));
+    assert_eq!(
+        err_policy.err(),
+        Some(Ok(InsuranceError::InsufficientPoolLiquidity))
+    );
 }

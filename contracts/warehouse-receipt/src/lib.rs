@@ -30,7 +30,7 @@ pub struct WarehouseReceipt {
     pub warehouse_id: Symbol,
     pub commodity: Symbol,
     pub quantity_kg: u64,
-    pub grade: Symbol,          // e.g. "Grade1", "Grade2"
+    pub grade: Symbol,            // e.g. "Grade1", "Grade2"
     pub moisture_percent_e2: u32, // e.g. 1350 for 13.50%
     pub harvest_year: u32,
     pub is_pledged: bool,
@@ -61,22 +61,32 @@ impl WarehouseReceiptContract {
 
         env.storage().instance().set(&DataKey::Admin, &admin);
         let empty_custodians: Vec<Address> = Vec::new(&env);
-        env.storage().instance().set(&DataKey::Custodians, &empty_custodians);
+        env.storage()
+            .instance()
+            .set(&DataKey::Custodians, &empty_custodians);
         env.storage().instance().set(&DataKey::ReceiptCount, &0u32);
         env.storage().instance().set(&DataKey::Paused, &false);
 
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         env.events().publish((symbol_short!("r_init"),), admin);
         Ok(())
     }
 
     pub fn get_admin(env: Env) -> Result<Address, ReceiptError> {
-        env.storage().instance().get(&DataKey::Admin).ok_or(ReceiptError::NotInitialized)
+        env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(ReceiptError::NotInitialized)
     }
 
     pub fn get_receipt_count(env: Env) -> u32 {
-        env.storage().instance().get(&DataKey::ReceiptCount).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::ReceiptCount)
+            .unwrap_or(0)
     }
 
     /// Authorize a licensed warehouse custodian / grain elevator operator
@@ -104,15 +114,24 @@ impl WarehouseReceiptContract {
         }
 
         custodians.push_back(custodian.clone());
-        env.storage().instance().set(&DataKey::Custodians, &custodians);
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .instance()
+            .set(&DataKey::Custodians, &custodians);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
-        env.events().publish((symbol_short!("cust_add"),), custodian);
+        env.events()
+            .publish((symbol_short!("cust_add"),), custodian);
         Ok(())
     }
 
     /// Remove a licensed warehouse custodian
-    pub fn remove_custodian(env: Env, admin: Address, custodian: Address) -> Result<(), ReceiptError> {
+    pub fn remove_custodian(
+        env: Env,
+        admin: Address,
+        custodian: Address,
+    ) -> Result<(), ReceiptError> {
         let stored_admin: Address = env
             .storage()
             .instance()
@@ -137,7 +156,9 @@ impl WarehouseReceiptContract {
         }
 
         env.storage().instance().set(&DataKey::Custodians, &updated);
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         env.events().publish((symbol_short!("cust_rm"),), custodian);
         Ok(())
@@ -180,14 +201,19 @@ impl WarehouseReceiptContract {
         }
 
         env.storage().instance().set(&DataKey::Paused, &paused);
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         env.events().publish((symbol_short!("r_pause"),), paused);
         Ok(())
     }
 
     pub fn is_paused(env: Env) -> bool {
-        env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
     }
 
     /// Verify physical grain quality compliance against international grain storage standards
@@ -256,10 +282,18 @@ impl WarehouseReceiptContract {
             created_at: env.ledger().timestamp(),
         };
 
-        env.storage().persistent().set(&DataKey::Receipt(count), &receipt);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Receipt(count), &receipt);
         env.storage().instance().set(&DataKey::ReceiptCount, &count);
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
-        env.storage().persistent().extend_ttl(&DataKey::Receipt(count), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Receipt(count),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (symbol_short!("r_mint"), count),
@@ -303,13 +337,17 @@ impl WarehouseReceiptContract {
         receipt.is_pledged = true;
         receipt.pledgee = Some(pledgee.clone());
 
-        env.storage().persistent().set(&DataKey::Receipt(receipt_id), &receipt);
-        env.storage().persistent().extend_ttl(&DataKey::Receipt(receipt_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
-
-        env.events().publish(
-            (symbol_short!("r_pledge"), receipt_id),
-            (owner, pledgee),
+        env.storage()
+            .persistent()
+            .set(&DataKey::Receipt(receipt_id), &receipt);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Receipt(receipt_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
         );
+
+        env.events()
+            .publish((symbol_short!("r_pledge"), receipt_id), (owner, pledgee));
         Ok(())
     }
 
@@ -332,13 +370,17 @@ impl WarehouseReceiptContract {
         receipt.is_pledged = false;
         receipt.pledgee = None;
 
-        env.storage().persistent().set(&DataKey::Receipt(receipt_id), &receipt);
-        env.storage().persistent().extend_ttl(&DataKey::Receipt(receipt_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
-
-        env.events().publish(
-            (symbol_short!("r_unpld"), receipt_id),
-            pledgee,
+        env.storage()
+            .persistent()
+            .set(&DataKey::Receipt(receipt_id), &receipt);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Receipt(receipt_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
         );
+
+        env.events()
+            .publish((symbol_short!("r_unpld"), receipt_id), pledgee);
         Ok(())
     }
 
@@ -366,8 +408,14 @@ impl WarehouseReceiptContract {
 
         receipt.is_redeemed = true;
 
-        env.storage().persistent().set(&DataKey::Receipt(receipt_id), &receipt);
-        env.storage().persistent().extend_ttl(&DataKey::Receipt(receipt_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Receipt(receipt_id), &receipt);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Receipt(receipt_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (symbol_short!("r_redeem"), receipt_id),
@@ -402,8 +450,14 @@ impl WarehouseReceiptContract {
         let previous_owner = receipt.owner.clone();
         receipt.owner = new_owner.clone();
 
-        env.storage().persistent().set(&DataKey::Receipt(receipt_id), &receipt);
-        env.storage().persistent().extend_ttl(&DataKey::Receipt(receipt_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Receipt(receipt_id), &receipt);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Receipt(receipt_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (symbol_short!("r_trans"), receipt_id),

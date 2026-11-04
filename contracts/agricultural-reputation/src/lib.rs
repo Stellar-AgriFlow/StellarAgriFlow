@@ -1,8 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{
-    contract, contractimpl, contracttype, Address, Env, Symbol,
-};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol};
 
 const INSTANCE_BUMP_AMOUNT: u32 = 300_000;
 const INSTANCE_LIFETIME_THRESHOLD: u32 = 100_000;
@@ -52,14 +50,20 @@ impl AgriculturalReputationContract {
         if admin != stored_admin {
             panic!("Unauthorized admin");
         }
-        env.storage().instance().set(&DataKey::Authorized(caller), &true);
+        env.storage()
+            .instance()
+            .set(&DataKey::Authorized(caller), &true);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
     }
 
     pub fn is_authorized(env: Env, caller: Address) -> bool {
-        if let Some(admin) = env.storage().instance().get::<DataKey, Address>(&DataKey::Admin) {
+        if let Some(admin) = env
+            .storage()
+            .instance()
+            .get::<DataKey, Address>(&DataKey::Admin)
+        {
             if admin == caller {
                 return true;
             }
@@ -67,12 +71,7 @@ impl AgriculturalReputationContract {
         env.storage().instance().has(&DataKey::Authorized(caller))
     }
 
-    pub fn record_activity(
-        env: Env,
-        caller: Address,
-        user: Address,
-        activity_type: Symbol,
-    ) -> u32 {
+    pub fn record_activity(env: Env, caller: Address, user: Address, activity_type: Symbol) -> u32 {
         caller.require_auth();
         if !Self::is_authorized(env.clone(), caller.clone()) {
             panic!("Caller is not authorized to award reputation");
@@ -115,7 +114,9 @@ impl AgriculturalReputationContract {
         }
 
         record.updated_at = env.ledger().timestamp();
-        env.storage().instance().set(&DataKey::Reputation(user.clone()), &record);
+        env.storage()
+            .instance()
+            .set(&DataKey::Reputation(user.clone()), &record);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);

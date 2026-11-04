@@ -27,19 +27,13 @@ fn test_reputation_lifecycle() {
     assert!(client.is_authorized(&finance_contract));
 
     // Finance contract records completed financing
-    let new_score = client.record_activity(
-        &finance_contract,
-        &farmer,
-        &Symbol::new(&env, "finance"),
-    );
+    let new_score =
+        client.record_activity(&finance_contract, &farmer, &Symbol::new(&env, "finance"));
     assert_eq!(new_score, 115);
 
     // Record repayment
-    let repay_score = client.record_activity(
-        &finance_contract,
-        &farmer,
-        &Symbol::new(&env, "repay"),
-    );
+    let repay_score =
+        client.record_activity(&finance_contract, &farmer, &Symbol::new(&env, "repay"));
     assert_eq!(repay_score, 140);
 
     let updated_rep = client.get_reputation(&farmer);
@@ -99,11 +93,8 @@ fn test_reputation_penalty_slashing() {
     client.add_authorized_caller(&admin, &finance_contract);
 
     // Initial score = 100. Record default penalty (-40 points)
-    let score_after_default = client.record_activity(
-        &finance_contract,
-        &farmer,
-        &Symbol::new(&env, "default"),
-    );
+    let score_after_default =
+        client.record_activity(&finance_contract, &farmer, &Symbol::new(&env, "default"));
     assert_eq!(score_after_default, 60);
 
     // Score 60 is Tier C

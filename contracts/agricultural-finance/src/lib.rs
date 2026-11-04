@@ -58,7 +58,9 @@ impl AgriculturalFinanceContract {
         env.storage()
             .instance()
             .set(&DataKey::ReputationContract, &reputation_contract);
-        env.storage().instance().set(&DataKey::FinancingCount, &0u32);
+        env.storage()
+            .instance()
+            .set(&DataKey::FinancingCount, &0u32);
         env.storage().instance().set(&DataKey::Paused, &false);
         env.storage()
             .instance()
@@ -116,7 +118,10 @@ impl AgriculturalFinanceContract {
     }
 
     pub fn is_paused(env: Env) -> bool {
-        env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
     }
 
     pub fn create_financing_request(
@@ -150,11 +155,8 @@ impl AgriculturalFinanceContract {
             .get::<DataKey, Address>(&DataKey::FarmRegistryContract)
         {
             let args = vec![&env, farm_id.clone().into_val(&env)];
-            let exists: bool = env.invoke_contract(
-                &registry_contract,
-                &Symbol::new(&env, "has_farm"),
-                args,
-            );
+            let exists: bool =
+                env.invoke_contract(&registry_contract, &Symbol::new(&env, "has_farm"), args);
             if !exists {
                 panic!("Farm ID does not exist in FarmRegistry");
             }
@@ -182,8 +184,12 @@ impl AgriculturalFinanceContract {
             repaid_at: 0,
         };
 
-        env.storage().instance().set(&DataKey::Financing(count), &request);
-        env.storage().instance().set(&DataKey::FinancingCount, &count);
+        env.storage()
+            .instance()
+            .set(&DataKey::Financing(count), &request);
+        env.storage()
+            .instance()
+            .set(&DataKey::FinancingCount, &count);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
@@ -234,7 +240,8 @@ impl AgriculturalFinanceContract {
                 funder.clone().into_val(&env),
                 Symbol::new(&env, "finance").into_val(&env),
             ];
-            let _: u32 = env.invoke_contract(&rep_contract, &Symbol::new(&env, "record_activity"), args);
+            let _: u32 =
+                env.invoke_contract(&rep_contract, &Symbol::new(&env, "record_activity"), args);
         }
 
         // Emit FinancingFunded event
@@ -245,7 +252,12 @@ impl AgriculturalFinanceContract {
     }
 
     /// Automatically extend repayment timeline if satellite weather oracle verifies a severe drought trigger
-    pub fn apply_drought_forbearance(env: Env, caller: Address, request_id: u32, region: Symbol) -> bool {
+    pub fn apply_drought_forbearance(
+        env: Env,
+        caller: Address,
+        request_id: u32,
+        region: Symbol,
+    ) -> bool {
         caller.require_auth();
         let mut req = Self::get_financing(env.clone(), request_id);
 
@@ -329,11 +341,7 @@ impl AgriculturalFinanceContract {
     }
 
     /// Calculate current market value of agricultural collateral against oracle price feed
-    pub fn calculate_collateral_value(
-        env: Env,
-        commodity: Symbol,
-        quantity_units: i128,
-    ) -> i128 {
+    pub fn calculate_collateral_value(env: Env, commodity: Symbol, quantity_units: i128) -> i128 {
         let price_feed = env
             .storage()
             .instance()
@@ -341,11 +349,8 @@ impl AgriculturalFinanceContract {
             .expect("Price feed not configured");
 
         let args = vec![&env, commodity.into_val(&env)];
-        let unit_price: i128 = env.invoke_contract(
-            &price_feed,
-            &Symbol::new(&env, "get_price"),
-            args,
-        );
+        let unit_price: i128 =
+            env.invoke_contract(&price_feed, &Symbol::new(&env, "get_price"), args);
 
         if unit_price <= 0 || quantity_units <= 0 {
             0
@@ -391,7 +396,8 @@ impl AgriculturalFinanceContract {
                 req.farmer.clone().into_val(&env),
                 Symbol::new(&env, "default").into_val(&env),
             ];
-            let _: u32 = env.invoke_contract(&rep_contract, &Symbol::new(&env, "record_activity"), args);
+            let _: u32 =
+                env.invoke_contract(&rep_contract, &Symbol::new(&env, "record_activity"), args);
         }
 
         env.events().publish(
@@ -433,7 +439,8 @@ impl AgriculturalFinanceContract {
                 farmer.clone().into_val(&env),
                 Symbol::new(&env, "repay").into_val(&env),
             ];
-            let _: u32 = env.invoke_contract(&rep_contract, &Symbol::new(&env, "record_activity"), args);
+            let _: u32 =
+                env.invoke_contract(&rep_contract, &Symbol::new(&env, "record_activity"), args);
         }
 
         // Emit RepaymentRecorded event
@@ -463,10 +470,8 @@ impl AgriculturalFinanceContract {
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         // Emit FinancingClosed event
-        env.events().publish(
-            (Symbol::new(&env, "FinancingClosed"), request_id),
-            farmer,
-        );
+        env.events()
+            .publish((Symbol::new(&env, "FinancingClosed"), request_id), farmer);
     }
 
     pub fn get_financing(env: Env, request_id: u32) -> FinancingRequest {

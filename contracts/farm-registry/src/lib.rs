@@ -63,7 +63,9 @@ pub enum DataKey {
 }
 
 fn format_farm_id(env: &Env, count: u32) -> String {
-    let mut buf = [b'A', b'G', b'R', b'I', b'-', b'0', b'0', b'0', b'0', b'0', b'0'];
+    let mut buf = [
+        b'A', b'G', b'R', b'I', b'-', b'0', b'0', b'0', b'0', b'0', b'0',
+    ];
     let mut val = count;
     for i in (5..11).rev() {
         buf[i] = b'0' + ((val % 10) as u8);
@@ -98,7 +100,11 @@ impl FarmRegistryContract {
         }
 
         // Get sequential counter
-        let mut count: u32 = env.storage().instance().get(&DataKey::FarmCount).unwrap_or(0);
+        let mut count: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::FarmCount)
+            .unwrap_or(0);
         count += 1;
         env.storage().instance().set(&DataKey::FarmCount, &count);
         env.storage()
@@ -121,10 +127,14 @@ impl FarmRegistryContract {
         };
 
         // Persist on-chain
-        env.storage().persistent().set(&DataKey::Farm(farm_id.clone()), &passport);
         env.storage()
             .persistent()
-            .extend_ttl(&DataKey::Farm(farm_id.clone()), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+            .set(&DataKey::Farm(farm_id.clone()), &passport);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Farm(farm_id.clone()),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         // Emit real Soroban contract event
         env.events().publish(
@@ -151,7 +161,10 @@ impl FarmRegistryContract {
 
     /// Returns the total number of registered farms.
     pub fn get_farm_count(env: Env) -> u32 {
-        env.storage().instance().get(&DataKey::FarmCount).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::FarmCount)
+            .unwrap_or(0)
     }
 
     /// Updates the status of an existing Farm Passport (only owner can modify).
@@ -174,17 +187,24 @@ impl FarmRegistryContract {
         }
 
         passport.status = new_status;
-        env.storage().persistent().set(&DataKey::Farm(farm_id.clone()), &passport);
         env.storage()
             .persistent()
-            .extend_ttl(&DataKey::Farm(farm_id), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+            .set(&DataKey::Farm(farm_id.clone()), &passport);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Farm(farm_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         Ok(())
     }
 
     /// Validates GPS coordinates (latitude in [-90, +90] e6 microdegrees, longitude in [-180, +180] e6 microdegrees)
     pub fn validate_gps_coordinates(_env: Env, lat_e6: i32, lon_e6: i32) -> bool {
-        lat_e6 >= -90_000_000 && lat_e6 <= 90_000_000 && lon_e6 >= -180_000_000 && lon_e6 <= 180_000_000
+        lat_e6 >= -90_000_000
+            && lat_e6 <= 90_000_000
+            && lon_e6 >= -180_000_000
+            && lon_e6 <= 180_000_000
     }
 
     pub fn set_farm_coordinates(
@@ -203,14 +223,25 @@ impl FarmRegistryContract {
             return Err(FarmError::InvalidInput);
         }
         let coords = FarmCoordinates { lat_e6, lon_e6 };
-        env.storage().persistent().set(&DataKey::FarmCoordinates(farm_id.clone()), &coords);
-        env.storage().persistent().extend_ttl(&DataKey::FarmCoordinates(farm_id.clone()), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
-        env.events().publish((Symbol::new(&env, "CoordinatesUpdated"), farm_id), (lat_e6, lon_e6));
+        env.storage()
+            .persistent()
+            .set(&DataKey::FarmCoordinates(farm_id.clone()), &coords);
+        env.storage().persistent().extend_ttl(
+            &DataKey::FarmCoordinates(farm_id.clone()),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
+        env.events().publish(
+            (Symbol::new(&env, "CoordinatesUpdated"), farm_id),
+            (lat_e6, lon_e6),
+        );
         Ok(())
     }
 
     pub fn get_farm_coordinates(env: Env, farm_id: String) -> Option<FarmCoordinates> {
-        env.storage().persistent().get(&DataKey::FarmCoordinates(farm_id))
+        env.storage()
+            .persistent()
+            .get(&DataKey::FarmCoordinates(farm_id))
     }
 
     pub fn add_certification(
@@ -238,9 +269,10 @@ impl FarmRegistryContract {
             expires_at,
         };
 
-        env.storage()
-            .persistent()
-            .set(&DataKey::FarmCertification(farm_id.clone(), cert_type.clone()), &cert);
+        env.storage().persistent().set(
+            &DataKey::FarmCertification(farm_id.clone(), cert_type.clone()),
+            &cert,
+        );
         env.storage().persistent().extend_ttl(
             &DataKey::FarmCertification(farm_id.clone(), cert_type.clone()),
             INSTANCE_LIFETIME_THRESHOLD,
@@ -267,8 +299,14 @@ impl FarmRegistryContract {
         }
     }
 
-    pub fn get_certification(env: Env, farm_id: String, cert_type: Symbol) -> Option<FarmCertification> {
-        env.storage().persistent().get(&DataKey::FarmCertification(farm_id, cert_type))
+    pub fn get_certification(
+        env: Env,
+        farm_id: String,
+        cert_type: Symbol,
+    ) -> Option<FarmCertification> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::FarmCertification(farm_id, cert_type))
     }
 
     pub fn update_yield_forecast(
@@ -296,10 +334,14 @@ impl FarmRegistryContract {
         passport.crop = new_crop.clone();
         passport.expected_yield_tons = new_expected_yield_tons;
 
-        env.storage().persistent().set(&DataKey::Farm(farm_id.clone()), &passport);
         env.storage()
             .persistent()
-            .extend_ttl(&DataKey::Farm(farm_id.clone()), INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+            .set(&DataKey::Farm(farm_id.clone()), &passport);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Farm(farm_id.clone()),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (Symbol::new(&env, "YieldForecastUpdated"), farm_id),

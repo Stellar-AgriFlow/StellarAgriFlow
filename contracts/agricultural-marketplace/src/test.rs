@@ -1,7 +1,10 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Ledger as _}, Env};
+use soroban_sdk::{
+    testutils::{Address as _, Ledger as _},
+    Env,
+};
 
 #[contract]
 pub struct MockEscrowContract;
@@ -145,7 +148,8 @@ fn test_expire_stale_listing() {
     );
 
     // Shelf life = 14 days. Advance 15 days
-    env.ledger().set_timestamp(env.ledger().timestamp() + 15 * 86400);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + 15 * 86400);
 
     client.expire_listing(&keeper, &listing_id, &14);
     let listing = client.get_listing(&listing_id);

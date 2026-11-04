@@ -6,9 +6,7 @@ pub mod types;
 #[cfg(test)]
 mod test;
 
-use soroban_sdk::{
-    contract, contractimpl, symbol_short, Address, Env, Symbol,
-};
+use soroban_sdk::{contract, contractimpl, symbol_short, Address, Env, Symbol};
 pub use types::{BulkProcurementProposal, CoopError, CoopMember, DataKey, ProposalStatus};
 
 #[contract]
@@ -37,7 +35,8 @@ impl CooperativeVaultContract {
         admin.require_auth();
 
         storage::set_paused(&env, paused);
-        env.events().publish((symbol_short!("coop"), symbol_short!("paused")), paused);
+        env.events()
+            .publish((symbol_short!("coop"), symbol_short!("paused")), paused);
         Ok(())
     }
 
@@ -67,7 +66,8 @@ impl CooperativeVaultContract {
         storage::add_shares(&env, initial_shares);
         storage::add_member_to_list(&env, &member);
 
-        env.events().publish((symbol_short!("coop"), symbol_short!("mbr_add")), member);
+        env.events()
+            .publish((symbol_short!("coop"), symbol_short!("mbr_add")), member);
 
         Ok(())
     }
@@ -88,7 +88,10 @@ impl CooperativeVaultContract {
         storage::set_member(&env, &member, &member_data);
         storage::add_treasury(&env, amount);
 
-        env.events().publish((symbol_short!("coop"), symbol_short!("deposit")), (member, amount));
+        env.events().publish(
+            (symbol_short!("coop"), symbol_short!("deposit")),
+            (member, amount),
+        );
 
         Ok(())
     }
@@ -109,7 +112,10 @@ impl CooperativeVaultContract {
         storage::set_member(&env, &member, &member_data);
         storage::deduct_treasury(&env, amount);
 
-        env.events().publish((symbol_short!("coop"), symbol_short!("withdraw")), (member, amount));
+        env.events().publish(
+            (symbol_short!("coop"), symbol_short!("withdraw")),
+            (member, amount),
+        );
 
         Ok(())
     }
@@ -155,7 +161,8 @@ impl CooperativeVaultContract {
 
         storage::set_proposal(&env, next_id, &proposal);
 
-        env.events().publish((symbol_short!("coop"), symbol_short!("prop_new")), next_id);
+        env.events()
+            .publish((symbol_short!("coop"), symbol_short!("prop_new")), next_id);
 
         Ok(next_id)
     }
@@ -182,7 +189,10 @@ impl CooperativeVaultContract {
         storage::set_proposal(&env, proposal_id, &proposal);
         storage::record_vote(&env, proposal_id, &member);
 
-        env.events().publish((symbol_short!("coop"), symbol_short!("voted")), (proposal_id, proposal.votes_for));
+        env.events().publish(
+            (symbol_short!("coop"), symbol_short!("voted")),
+            (proposal_id, proposal.votes_for),
+        );
 
         Ok(())
     }
@@ -204,7 +214,10 @@ impl CooperativeVaultContract {
         proposal.status = ProposalStatus::Executed;
         storage::set_proposal(&env, proposal_id, &proposal);
 
-        env.events().publish((symbol_short!("coop"), symbol_short!("executed")), proposal_id);
+        env.events().publish(
+            (symbol_short!("coop"), symbol_short!("executed")),
+            proposal_id,
+        );
 
         Ok(())
     }

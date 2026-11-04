@@ -1,7 +1,10 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Ledger as _}, Env};
+use soroban_sdk::{
+    testutils::{Address as _, Ledger as _},
+    Env,
+};
 
 #[contract]
 pub struct MockRegistryContract;
@@ -213,7 +216,8 @@ fn test_mark_default_after_grace_period() {
     client.fund_request(&funder, &req_id);
 
     // Fast forward ledger timestamp beyond 30 days + 7 days grace = 37 days (3,196,800 seconds)
-    env.ledger().set_timestamp(env.ledger().timestamp() + 38 * 86400);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + 38 * 86400);
 
     client.mark_default(&funder, &req_id);
     let req = client.get_financing(&req_id);
@@ -253,7 +257,8 @@ fn test_drought_forbearance_extension() {
     client.fund_request(&funder, &req_id);
 
     // Apply drought forbearance verified by weather oracle
-    let forbearance_applied = client.apply_drought_forbearance(&farmer, &req_id, &Symbol::new(&env, "NG_KANO"));
+    let forbearance_applied =
+        client.apply_drought_forbearance(&farmer, &req_id, &Symbol::new(&env, "NG_KANO"));
     assert_eq!(forbearance_applied, true);
 
     let updated_req = client.get_financing(&req_id);

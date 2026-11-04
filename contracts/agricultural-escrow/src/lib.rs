@@ -1,8 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{
-    contract, contractimpl, contracttype, vec, Address, Env, IntoVal, Symbol,
-};
+use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, Env, IntoVal, Symbol};
 
 const INSTANCE_BUMP_AMOUNT: u32 = 300_000;
 const INSTANCE_LIFETIME_THRESHOLD: u32 = 100_000;
@@ -68,11 +66,15 @@ impl AgriculturalEscrowContract {
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
-        env.events().publish((Symbol::new(&env, "EscrowPaused"),), paused);
+        env.events()
+            .publish((Symbol::new(&env, "EscrowPaused"),), paused);
     }
 
     pub fn is_paused(env: Env) -> bool {
-        env.storage().instance().get(&DataKey::Paused).unwrap_or(false)
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
     }
 
     pub fn create_escrow(
@@ -112,7 +114,9 @@ impl AgriculturalEscrowContract {
             disputed_at: 0,
         };
 
-        env.storage().instance().set(&DataKey::Escrow(count), &escrow);
+        env.storage()
+            .instance()
+            .set(&DataKey::Escrow(count), &escrow);
         env.storage().instance().set(&DataKey::EscrowCount, &count);
         env.storage()
             .instance()
@@ -233,7 +237,11 @@ impl AgriculturalEscrowContract {
                 escrow.seller.clone().into_val(&env),
                 Symbol::new(&env, "escrow").into_val(&env),
             ];
-            let _: u32 = env.invoke_contract(&rep_contract, &Symbol::new(&env, "record_activity"), args_seller);
+            let _: u32 = env.invoke_contract(
+                &rep_contract,
+                &Symbol::new(&env, "record_activity"),
+                args_seller,
+            );
 
             // Award reputation to buyer for completed trade
             let args_buyer = vec![
@@ -242,7 +250,11 @@ impl AgriculturalEscrowContract {
                 escrow.buyer.clone().into_val(&env),
                 Symbol::new(&env, "trade").into_val(&env),
             ];
-            let _: u32 = env.invoke_contract(&rep_contract, &Symbol::new(&env, "record_activity"), args_buyer);
+            let _: u32 = env.invoke_contract(
+                &rep_contract,
+                &Symbol::new(&env, "record_activity"),
+                args_buyer,
+            );
         }
 
         // Emit EscrowReleased event
@@ -360,10 +372,8 @@ impl AgriculturalEscrowContract {
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
-        env.events().publish(
-            (Symbol::new(&env, "EscrowCancelled"), escrow_id),
-            buyer,
-        );
+        env.events()
+            .publish((Symbol::new(&env, "EscrowCancelled"), escrow_id), buyer);
     }
 
     pub fn get_escrow(env: Env, escrow_id: u32) -> EscrowRecord {
