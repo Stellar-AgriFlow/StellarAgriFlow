@@ -255,7 +255,9 @@ impl FarmRegistryContract {
             admin.require_auth();
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
         Ok(())
     }
 
@@ -265,29 +267,47 @@ impl FarmRegistryContract {
 
     /// Authorize a certified agricultural inspector / certifier
     pub fn add_certifier(env: Env, admin: Address, certifier: Address) -> Result<(), FarmError> {
-        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).ok_or(FarmError::NotAuthorized)?;
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(FarmError::NotAuthorized)?;
         stored_admin.require_auth();
         if admin != stored_admin {
             return Err(FarmError::NotAuthorized);
         }
-        env.storage().persistent().set(&DataKey::Certifier(certifier), &true);
-        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Certifier(certifier), &true);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
         Ok(())
     }
 
     /// Remove a certified inspector
     pub fn remove_certifier(env: Env, admin: Address, certifier: Address) -> Result<(), FarmError> {
-        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).ok_or(FarmError::NotAuthorized)?;
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(FarmError::NotAuthorized)?;
         stored_admin.require_auth();
         if admin != stored_admin {
             return Err(FarmError::NotAuthorized);
         }
-        env.storage().persistent().remove(&DataKey::Certifier(certifier));
+        env.storage()
+            .persistent()
+            .remove(&DataKey::Certifier(certifier));
         Ok(())
     }
 
     pub fn is_certifier(env: Env, address: Address) -> bool {
-        if let Some(admin) = env.storage().instance().get::<DataKey, Address>(&DataKey::Admin) {
+        if let Some(admin) = env
+            .storage()
+            .instance()
+            .get::<DataKey, Address>(&DataKey::Admin)
+        {
             if admin == address {
                 return true;
             }

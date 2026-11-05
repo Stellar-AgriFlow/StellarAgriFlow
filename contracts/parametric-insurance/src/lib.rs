@@ -494,9 +494,10 @@ impl ParametricInsuranceContract {
             .instance()
             .get(&DataKey::TotalLiabilities)
             .unwrap_or(0);
-        env.storage()
-            .instance()
-            .set(&DataKey::TotalLiabilities, &total_liab.saturating_sub(policy.payout_amount));
+        env.storage().instance().set(
+            &DataKey::TotalLiabilities,
+            &total_liab.saturating_sub(policy.payout_amount),
+        );
 
         if let Some(token) = Self::get_token(env.clone()) {
             soroban_sdk::token::Client::new(&env, &token).transfer(
@@ -552,9 +553,10 @@ impl ParametricInsuranceContract {
             .instance()
             .get(&DataKey::TotalLiabilities)
             .unwrap_or(0);
-        env.storage()
-            .instance()
-            .set(&DataKey::TotalLiabilities, &total_liab.saturating_sub(policy.payout_amount));
+        env.storage().instance().set(
+            &DataKey::TotalLiabilities,
+            &total_liab.saturating_sub(policy.payout_amount),
+        );
         env.storage()
             .persistent()
             .set(&DataKey::Policy(policy_id), &policy);

@@ -487,9 +487,10 @@ impl WarehouseReceiptContract {
                 updated_prev.push_back(id);
             }
         }
-        env.storage()
-            .persistent()
-            .set(&DataKey::OwnerReceipts(previous_owner.clone()), &updated_prev);
+        env.storage().persistent().set(
+            &DataKey::OwnerReceipts(previous_owner.clone()),
+            &updated_prev,
+        );
 
         let mut new_ids: Vec<u32> = env
             .storage()
