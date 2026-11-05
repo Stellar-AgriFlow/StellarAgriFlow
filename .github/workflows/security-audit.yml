@@ -18,7 +18,7 @@ jobs:
         uses: taiki-e/install-action@cargo-audit
 
       - name: Run Cargo Audit
-        run: cargo audit --manifest-path contracts/Cargo.lock --ignore RUSTSEC-2020-0071 --ignore RUSTSEC-2020-0159 || true
+        run: cargo audit --manifest-path contracts/Cargo.lock --ignore RUSTSEC-2020-0071 --ignore RUSTSEC-2020-0159
 
   audit-node:
     name: Audit Node / pnpm Dependencies
@@ -38,4 +38,4 @@ jobs:
           node-version: 20
 
       - name: Run pnpm audit
-        run: pnpm audit --audit-level=high || true
+        run: pnpm audit --audit-level=high

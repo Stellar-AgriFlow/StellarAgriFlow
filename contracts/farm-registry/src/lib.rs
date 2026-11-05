@@ -60,6 +60,8 @@ pub enum DataKey {
     FarmCount,
     FarmCoordinates(String),
     FarmCertification(String, Symbol),
+    Admin,
+    Certifier(Address),
 }
 
 fn format_farm_id(env: &Env, count: u32) -> String {
@@ -244,6 +246,55 @@ impl FarmRegistryContract {
             .get(&DataKey::FarmCoordinates(farm_id))
     }
 
+    /// Set protocol administrator for certifier management
+    pub fn set_admin(env: Env, admin: Address) -> Result<(), FarmError> {
+        if env.storage().instance().has(&DataKey::Admin) {
+            let current_admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+            current_admin.require_auth();
+        } else {
+            admin.require_auth();
+        }
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        Ok(())
+    }
+
+    pub fn get_admin(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Admin)
+    }
+
+    /// Authorize a certified agricultural inspector / certifier
+    pub fn add_certifier(env: Env, admin: Address, certifier: Address) -> Result<(), FarmError> {
+        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).ok_or(FarmError::NotAuthorized)?;
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            return Err(FarmError::NotAuthorized);
+        }
+        env.storage().persistent().set(&DataKey::Certifier(certifier), &true);
+        env.storage().instance().extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        Ok(())
+    }
+
+    /// Remove a certified inspector
+    pub fn remove_certifier(env: Env, admin: Address, certifier: Address) -> Result<(), FarmError> {
+        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).ok_or(FarmError::NotAuthorized)?;
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            return Err(FarmError::NotAuthorized);
+        }
+        env.storage().persistent().remove(&DataKey::Certifier(certifier));
+        Ok(())
+    }
+
+    pub fn is_certifier(env: Env, address: Address) -> bool {
+        if let Some(admin) = env.storage().instance().get::<DataKey, Address>(&DataKey::Admin) {
+            if admin == address {
+                return true;
+            }
+        }
+        env.storage().persistent().has(&DataKey::Certifier(address))
+    }
+
     pub fn add_certification(
         env: Env,
         issuer: Address,
@@ -252,6 +303,11 @@ impl FarmRegistryContract {
         duration_days: u32,
     ) -> Result<(), FarmError> {
         issuer.require_auth();
+        if let Some(_admin) = Self::get_admin(env.clone()) {
+            if !Self::is_certifier(env.clone(), issuer.clone()) {
+                return Err(FarmError::NotAuthorized);
+            }
+        }
         if !Self::has_farm(env.clone(), farm_id.clone()) {
             return Err(FarmError::NotFound);
         }

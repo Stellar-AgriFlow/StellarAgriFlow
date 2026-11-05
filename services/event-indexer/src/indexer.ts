@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { rpc, scValToNative } from '@stellar/stellar-sdk';
 import {
   STELLAR_SOROBAN_RPC_URL,
@@ -81,7 +82,9 @@ export class SorobanEventIndexer {
     try {
       const contractId = event.contractId;
       const ledger = event.ledger;
-      const txHash = event.txHash || `tx-${ledger}-${Math.random().toString(36).slice(2, 8)}`;
+      const seed = `${contractId}-${ledger}-${event.pagingToken || event.id || ''}`;
+      const hash = crypto.createHash('sha256').update(seed).digest('hex').slice(0, 16);
+      const txHash = event.txHash || event.id || `tx-${ledger}-${hash}`;
       const timestamp = Date.now();
 
       // Parse topics

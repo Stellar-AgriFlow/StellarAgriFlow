@@ -111,14 +111,23 @@ export class IndexerDatabase {
       result = result.filter(
         (e) =>
           e.primaryWallet?.toLowerCase() === w ||
-          JSON.stringify(e.data).toLowerCase().includes(w)
+          (e.data &&
+            (e.data.owner?.toLowerCase() === w ||
+              e.data.farmer?.toLowerCase() === w ||
+              e.data.buyer?.toLowerCase() === w ||
+              e.data.seller?.toLowerCase() === w ||
+              e.data.funder?.toLowerCase() === w ||
+              e.data.operator?.toLowerCase() === w ||
+              e.data.wallet?.toLowerCase() === w ||
+              (typeof e.data.primaryWallet === 'string' &&
+                e.data.primaryWallet.toLowerCase() === w)))
       );
     }
     if (criteria.farmId) {
       result = result.filter(
         (e) =>
           e.farmId === criteria.farmId ||
-          JSON.stringify(e.data).includes(criteria.farmId!)
+          (e.data && e.data.farmId === criteria.farmId)
       );
     }
     if (criteria.contractId) {

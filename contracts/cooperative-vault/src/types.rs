@@ -61,4 +61,5 @@ pub enum DataKey {
     ProposalCount,
     Proposal(u64),
     ProposalVoted(u64, Address),
+    Token,
 }

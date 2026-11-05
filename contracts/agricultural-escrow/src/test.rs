@@ -172,3 +172,40 @@ fn test_escrow_pause_and_cancel_unfunded() {
     let cancelled = client.get_escrow(&escrow_id);
     assert_eq!(cancelled.status, 3);
 }
+
+#[test]
+fn test_escrow_with_token_transfers() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let rep_contract_id = env.register(MockReputationContract, ());
+    let escrow_contract_id = env.register(AgriculturalEscrowContract, ());
+    let client = AgriculturalEscrowContractClient::new(&env, &escrow_contract_id);
+
+    let admin = Address::generate(&env);
+    let buyer = Address::generate(&env);
+    let seller = Address::generate(&env);
+
+    client.init(&admin, &rep_contract_id);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin.clone());
+    let token_client = soroban_sdk::token::StellarAssetClient::new(&env, &token_id.address());
+    let token_general = soroban_sdk::token::Client::new(&env, &token_id.address());
+
+    token_client.mint(&buyer, &1000);
+    assert_eq!(token_general.balance(&buyer), 1000);
+
+    client.set_token(&admin, &token_id.address());
+    assert_eq!(client.get_token(), Some(token_id.address()));
+
+    let escrow_id = client.create_escrow(&buyer, &buyer, &seller, &1, &400);
+    client.fund_escrow(&buyer, &escrow_id);
+
+    assert_eq!(token_general.balance(&buyer), 600);
+    assert_eq!(token_general.balance(&escrow_contract_id), 400);
+
+    client.release_funds(&buyer, &escrow_id);
+    assert_eq!(token_general.balance(&seller), 400);
+    assert_eq!(token_general.balance(&escrow_contract_id), 0);
+}

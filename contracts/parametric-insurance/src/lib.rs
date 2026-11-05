@@ -50,6 +50,9 @@ pub enum DataKey {
     PolicyCount,
     Policy(u32),
     Paused,
+    TotalLiabilities,
+    FarmerPolicies(Address),
+    Token,
 }
 
 #[contract]
@@ -77,6 +80,9 @@ impl ParametricInsuranceContract {
         env.storage().instance().set(&DataKey::TotalShares, &0i128);
         env.storage().instance().set(&DataKey::PolicyCount, &0u32);
         env.storage().instance().set(&DataKey::Paused, &false);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalLiabilities, &0i128);
 
         env.storage()
             .instance()
@@ -84,6 +90,30 @@ impl ParametricInsuranceContract {
 
         env.events().publish((symbol_short!("ins_init"),), admin);
         Ok(())
+    }
+
+    pub fn set_token(env: Env, admin: Address, token: Address) -> Result<(), InsuranceError> {
+        let stored_admin = Self::get_admin(env.clone())?;
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            return Err(InsuranceError::Unauthorized);
+        }
+        env.storage().instance().set(&DataKey::Token, &token);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        Ok(())
+    }
+
+    pub fn get_token(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Token)
+    }
+
+    pub fn get_total_liabilities(env: Env) -> i128 {
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalLiabilities)
+            .unwrap_or(0)
     }
 
     pub fn get_admin(env: Env) -> Result<Address, InsuranceError> {
@@ -158,6 +188,14 @@ impl ParametricInsuranceContract {
             .instance()
             .get(&DataKey::TotalShares)
             .unwrap_or(0);
+
+        if let Some(token) = Self::get_token(env.clone()) {
+            soroban_sdk::token::Client::new(&env, &token).transfer(
+                &provider,
+                &env.current_contract_address(),
+                &amount,
+            );
+        }
 
         let shares_to_mint = if total_shares == 0 || total_liq == 0 {
             amount
@@ -241,6 +279,14 @@ impl ParametricInsuranceContract {
             return Err(InsuranceError::InsufficientPoolLiquidity);
         }
 
+        if let Some(token) = Self::get_token(env.clone()) {
+            soroban_sdk::token::Client::new(&env, &token).transfer(
+                &env.current_contract_address(),
+                &provider,
+                &payout_amount,
+            );
+        }
+
         let new_user_shares = current_user_shares - shares_to_burn;
         let new_total_shares = total_shares - shares_to_burn;
         let new_total_liq = total_liq - payout_amount;
@@ -299,11 +345,24 @@ impl ParametricInsuranceContract {
             .instance()
             .get(&DataKey::TotalLiquidity)
             .unwrap_or(0);
-        if total_liq < payout_amount {
+        let total_liab: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalLiabilities)
+            .unwrap_or(0);
+        if total_liq < total_liab + payout_amount {
             return Err(InsuranceError::InsufficientPoolLiquidity);
         }
 
         let premium = Self::calculate_premium(env.clone(), payout_amount, duration_days);
+
+        if let Some(token) = Self::get_token(env.clone()) {
+            soroban_sdk::token::Client::new(&env, &token).transfer(
+                &farmer,
+                &env.current_contract_address(),
+                &premium,
+            );
+        }
 
         let mut count: u32 = env
             .storage()
@@ -329,11 +388,29 @@ impl ParametricInsuranceContract {
         env.storage()
             .instance()
             .set(&DataKey::TotalLiquidity, &new_total_liq);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalLiabilities, &(total_liab + payout_amount));
 
         env.storage()
             .persistent()
             .set(&DataKey::Policy(count), &policy);
         env.storage().instance().set(&DataKey::PolicyCount, &count);
+
+        let mut farmer_policy_ids: soroban_sdk::Vec<u32> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::FarmerPolicies(farmer.clone()))
+            .unwrap_or(soroban_sdk::Vec::new(&env));
+        farmer_policy_ids.push_back(count);
+        env.storage()
+            .persistent()
+            .set(&DataKey::FarmerPolicies(farmer.clone()), &farmer_policy_ids);
+        env.storage().persistent().extend_ttl(
+            &DataKey::FarmerPolicies(farmer.clone()),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.storage()
             .instance()
@@ -412,6 +489,23 @@ impl ParametricInsuranceContract {
             .instance()
             .set(&DataKey::TotalLiquidity, &new_total_liq);
 
+        let total_liab: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalLiabilities)
+            .unwrap_or(0);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalLiabilities, &total_liab.saturating_sub(policy.payout_amount));
+
+        if let Some(token) = Self::get_token(env.clone()) {
+            soroban_sdk::token::Client::new(&env, &token).transfer(
+                &env.current_contract_address(),
+                &policy.farmer,
+                &policy.payout_amount,
+            );
+        }
+
         policy.is_paid = true;
         env.storage()
             .persistent()
@@ -452,6 +546,15 @@ impl ParametricInsuranceContract {
         }
 
         policy.is_expired = true;
+
+        let total_liab: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalLiabilities)
+            .unwrap_or(0);
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalLiabilities, &total_liab.saturating_sub(policy.payout_amount));
         env.storage()
             .persistent()
             .set(&DataKey::Policy(policy_id), &policy);
@@ -485,14 +588,28 @@ impl ParametricInsuranceContract {
             .unwrap_or(0)
     }
 
-    /// Retrieve all insurance policies purchased by a specific farmer address
+    /// Retrieve all insurance policies purchased by a specific farmer address in O(k) bounded reads
     pub fn get_policies_by_farmer(env: Env, farmer: Address) -> soroban_sdk::Vec<InsurancePolicy> {
-        let count = Self::get_policy_count(env.clone());
         let mut user_policies: soroban_sdk::Vec<InsurancePolicy> = soroban_sdk::Vec::new(&env);
-        for id in 1..=count {
-            if let Ok(policy) = Self::get_policy(env.clone(), id) {
-                if policy.farmer == farmer {
-                    user_policies.push_back(policy);
+        if let Some(ids) = env
+            .storage()
+            .persistent()
+            .get::<DataKey, soroban_sdk::Vec<u32>>(&DataKey::FarmerPolicies(farmer.clone()))
+        {
+            for id in ids.iter() {
+                if let Ok(policy) = Self::get_policy(env.clone(), id) {
+                    if policy.farmer == farmer {
+                        user_policies.push_back(policy);
+                    }
+                }
+            }
+        } else {
+            let count = Self::get_policy_count(env.clone());
+            for id in 1..=count {
+                if let Ok(policy) = Self::get_policy(env.clone(), id) {
+                    if policy.farmer == farmer {
+                        user_policies.push_back(policy);
+                    }
                 }
             }
         }

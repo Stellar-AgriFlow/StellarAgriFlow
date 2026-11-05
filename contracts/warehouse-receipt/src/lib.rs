@@ -46,6 +46,7 @@ pub enum DataKey {
     ReceiptCount,
     Receipt(u32),
     Paused,
+    OwnerReceipts(Address),
 }
 
 #[contract]
@@ -295,6 +296,21 @@ impl WarehouseReceiptContract {
             INSTANCE_BUMP_AMOUNT,
         );
 
+        let mut owner_receipt_ids: Vec<u32> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::OwnerReceipts(farmer.clone()))
+            .unwrap_or(Vec::new(&env));
+        owner_receipt_ids.push_back(count);
+        env.storage()
+            .persistent()
+            .set(&DataKey::OwnerReceipts(farmer.clone()), &owner_receipt_ids);
+        env.storage().persistent().extend_ttl(
+            &DataKey::OwnerReceipts(farmer.clone()),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
+
         env.events().publish(
             (symbol_short!("r_mint"), count),
             (farmer, commodity, quantity_kg),
@@ -459,6 +475,37 @@ impl WarehouseReceiptContract {
             INSTANCE_BUMP_AMOUNT,
         );
 
+        // Update secondary index: remove from previous owner and add to new owner
+        let prev_ids: Vec<u32> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::OwnerReceipts(previous_owner.clone()))
+            .unwrap_or(Vec::new(&env));
+        let mut updated_prev: Vec<u32> = Vec::new(&env);
+        for id in prev_ids.iter() {
+            if id != receipt_id {
+                updated_prev.push_back(id);
+            }
+        }
+        env.storage()
+            .persistent()
+            .set(&DataKey::OwnerReceipts(previous_owner.clone()), &updated_prev);
+
+        let mut new_ids: Vec<u32> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::OwnerReceipts(new_owner.clone()))
+            .unwrap_or(Vec::new(&env));
+        new_ids.push_back(receipt_id);
+        env.storage()
+            .persistent()
+            .set(&DataKey::OwnerReceipts(new_owner.clone()), &new_ids);
+        env.storage().persistent().extend_ttl(
+            &DataKey::OwnerReceipts(new_owner.clone()),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
+
         env.events().publish(
             (symbol_short!("r_trans"), receipt_id),
             (previous_owner, new_owner),
@@ -466,14 +513,28 @@ impl WarehouseReceiptContract {
         Ok(())
     }
 
-    /// Retrieve all warehouse receipts belonging to a specific owner
+    /// Retrieve all warehouse receipts belonging to a specific owner in O(k) bounded reads
     pub fn get_receipts_by_owner(env: Env, owner: Address) -> Vec<WarehouseReceipt> {
-        let count = Self::get_receipt_count(env.clone());
         let mut user_receipts: Vec<WarehouseReceipt> = Vec::new(&env);
-        for id in 1..=count {
-            if let Ok(receipt) = Self::get_receipt(env.clone(), id) {
-                if receipt.owner == owner {
-                    user_receipts.push_back(receipt);
+        if let Some(ids) = env
+            .storage()
+            .persistent()
+            .get::<DataKey, Vec<u32>>(&DataKey::OwnerReceipts(owner.clone()))
+        {
+            for id in ids.iter() {
+                if let Ok(receipt) = Self::get_receipt(env.clone(), id) {
+                    if receipt.owner == owner {
+                        user_receipts.push_back(receipt);
+                    }
+                }
+            }
+        } else {
+            let count = Self::get_receipt_count(env.clone());
+            for id in 1..=count {
+                if let Ok(receipt) = Self::get_receipt(env.clone(), id) {
+                    if receipt.owner == owner {
+                        user_receipts.push_back(receipt);
+                    }
                 }
             }
         }

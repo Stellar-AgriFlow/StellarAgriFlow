@@ -112,3 +112,56 @@ fn test_partial_savings_withdrawal() {
     client.withdraw_savings(&farmer, &3000i128);
     assert_eq!(client.get_treasury(), 5000);
 }
+
+#[test]
+fn test_coop_vault_token_transfers() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(CooperativeVaultContract, ());
+    let client = CooperativeVaultContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let member = Address::generate(&env);
+    let vendor = Address::generate(&env);
+
+    client.initialize(&admin, &50u32);
+    client.register_member(&admin, &member, &100u64);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin.clone());
+    let token_client = soroban_sdk::token::StellarAssetClient::new(&env, &token_id.address());
+    let token_general = soroban_sdk::token::Client::new(&env, &token_id.address());
+
+    token_client.mint(&member, &10_000);
+    assert_eq!(token_general.balance(&member), 10_000);
+
+    client.set_token(&admin, &token_id.address());
+    assert_eq!(client.get_token(), Some(token_id.address()));
+
+    // Deposit with tokens
+    client.deposit_savings(&member, &6_000);
+    assert_eq!(token_general.balance(&member), 4_000);
+    assert_eq!(token_general.balance(&contract_id), 6_000);
+    assert_eq!(client.get_treasury(), 6_000);
+
+    // Withdraw with tokens
+    client.withdraw_savings(&member, &1_000);
+    assert_eq!(token_general.balance(&member), 5_000);
+    assert_eq!(token_general.balance(&contract_id), 5_000);
+    assert_eq!(client.get_treasury(), 5_000);
+
+    // Submit and execute proposal with tokens
+    let prop_id = client.submit_proposal(
+        &member,
+        &soroban_sdk::Symbol::new(&env, "seeds"),
+        &vendor,
+        &2_000,
+    );
+    client.vote_proposal(&member, &prop_id);
+    client.execute_proposal(&admin, &prop_id);
+
+    assert_eq!(token_general.balance(&vendor), 2_000);
+    assert_eq!(token_general.balance(&contract_id), 3_000);
+    assert_eq!(client.get_treasury(), 3_000);
+}

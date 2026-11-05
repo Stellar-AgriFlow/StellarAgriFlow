@@ -40,6 +40,21 @@ impl CooperativeVaultContract {
         Ok(())
     }
 
+    pub fn set_token(env: Env, admin: Address, token: Address) -> Result<(), CoopError> {
+        let stored_admin = storage::get_admin(&env)?;
+        if admin != stored_admin {
+            return Err(CoopError::Unauthorized);
+        }
+        admin.require_auth();
+
+        storage::set_token(&env, &token);
+        Ok(())
+    }
+
+    pub fn get_token(env: Env) -> Option<Address> {
+        storage::get_token(&env)
+    }
+
     pub fn register_member(
         env: Env,
         admin: Address,
@@ -84,6 +99,13 @@ impl CooperativeVaultContract {
         }
 
         let mut member_data = storage::get_member(&env, &member)?;
+        if let Some(token) = storage::get_token(&env) {
+            soroban_sdk::token::Client::new(&env, &token).transfer(
+                &member,
+                &env.current_contract_address(),
+                &amount,
+            );
+        }
         member_data.staked_amount += amount;
         storage::set_member(&env, &member, &member_data);
         storage::add_treasury(&env, amount);
@@ -109,6 +131,13 @@ impl CooperativeVaultContract {
         }
 
         member_data.staked_amount -= amount;
+        if let Some(token) = storage::get_token(&env) {
+            soroban_sdk::token::Client::new(&env, &token).transfer(
+                &env.current_contract_address(),
+                &member,
+                &amount,
+            );
+        }
         storage::set_member(&env, &member, &member_data);
         storage::deduct_treasury(&env, amount);
 
@@ -210,6 +239,14 @@ impl CooperativeVaultContract {
         }
 
         storage::deduct_treasury(&env, proposal.amount);
+
+        if let Some(token) = storage::get_token(&env) {
+            soroban_sdk::token::Client::new(&env, &token).transfer(
+                &env.current_contract_address(),
+                &proposal.recipient,
+                &proposal.amount,
+            );
+        }
 
         proposal.status = ProposalStatus::Executed;
         storage::set_proposal(&env, proposal_id, &proposal);

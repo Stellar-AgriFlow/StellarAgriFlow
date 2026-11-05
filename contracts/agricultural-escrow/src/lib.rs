@@ -28,6 +28,7 @@ pub enum DataKey {
     EscrowCount,
     Escrow(u32),
     Paused,
+    Token,
 }
 
 #[contract]
@@ -75,6 +76,23 @@ impl AgriculturalEscrowContract {
             .instance()
             .get(&DataKey::Paused)
             .unwrap_or(false)
+    }
+
+    pub fn set_token(env: Env, admin: Address, token: Address) {
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Not initialized");
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            panic!("Unauthorized admin");
+        }
+        env.storage().instance().set(&DataKey::Token, &token);
+    }
+
+    pub fn get_token(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Token)
     }
 
     pub fn create_escrow(
@@ -146,6 +164,13 @@ impl AgriculturalEscrowContract {
         }
 
         escrow.status = 1; // Funded
+        if let Some(token) = Self::get_token(env.clone()) {
+            soroban_sdk::token::Client::new(&env, &token).transfer(
+                &buyer,
+                &env.current_contract_address(),
+                &escrow.amount,
+            );
+        }
         env.storage()
             .instance()
             .set(&DataKey::Escrow(escrow_id), &escrow);
@@ -217,6 +242,13 @@ impl AgriculturalEscrowContract {
 
         escrow.status = 2; // Released
         escrow.released_at = env.ledger().timestamp();
+        if let Some(token) = Self::get_token(env.clone()) {
+            soroban_sdk::token::Client::new(&env, &token).transfer(
+                &env.current_contract_address(),
+                &escrow.seller,
+                &escrow.amount,
+            );
+        }
         env.storage()
             .instance()
             .set(&DataKey::Escrow(escrow_id), &escrow);
@@ -282,6 +314,15 @@ impl AgriculturalEscrowContract {
             panic!("Escrow not refundable in current status");
         }
 
+        if escrow.status == 1 {
+            if let Some(token) = Self::get_token(env.clone()) {
+                soroban_sdk::token::Client::new(&env, &token).transfer(
+                    &env.current_contract_address(),
+                    &escrow.buyer,
+                    &escrow.amount,
+                );
+            }
+        }
         escrow.status = 3; // Refunded
         env.storage()
             .instance()
@@ -339,6 +380,13 @@ impl AgriculturalEscrowContract {
             panic!("Dispute resolution timeout has not elapsed");
         }
 
+        if let Some(token) = Self::get_token(env.clone()) {
+            soroban_sdk::token::Client::new(&env, &token).transfer(
+                &env.current_contract_address(),
+                &escrow.buyer,
+                &escrow.amount,
+            );
+        }
         escrow.status = 3; // Refunded
         env.storage()
             .instance()
