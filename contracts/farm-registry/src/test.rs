@@ -191,6 +191,10 @@ fn test_farm_certification_expiry() {
 
     let farmer = Address::generate(&env);
     let certifier = Address::generate(&env);
+    let admin = Address::generate(&env);
+
+    client.set_admin(&admin);
+    client.add_certifier(&admin, &certifier);
 
     let farm_id = client.register_farm(
         &farmer,

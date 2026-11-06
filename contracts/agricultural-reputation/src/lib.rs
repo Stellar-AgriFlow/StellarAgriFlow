@@ -115,8 +115,13 @@ impl AgriculturalReputationContract {
 
         record.updated_at = env.ledger().timestamp();
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Reputation(user.clone()), &record);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Reputation(user.clone()),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
@@ -149,7 +154,7 @@ impl AgriculturalReputationContract {
     pub fn get_reputation(env: Env, user: Address) -> ReputationData {
         if let Some(record) = env
             .storage()
-            .instance()
+            .persistent()
             .get::<DataKey, ReputationData>(&DataKey::Reputation(user.clone()))
         {
             record

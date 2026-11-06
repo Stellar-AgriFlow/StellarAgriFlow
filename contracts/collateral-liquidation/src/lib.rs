@@ -50,7 +50,11 @@ pub enum DataKey {
     Paused,
     AuctionCount,
     Auction(u64),
+    Token,
 }
+
+const INSTANCE_BUMP_AMOUNT: u32 = 300_000;
+const INSTANCE_LIFETIME_THRESHOLD: u32 = 100_000;
 
 #[contract]
 pub struct CollateralLiquidationContract;
@@ -66,8 +70,33 @@ impl CollateralLiquidationContract {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Paused, &false);
         env.storage().instance().set(&DataKey::AuctionCount, &0u64);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
 
         Ok(())
+    }
+
+    pub fn set_token(env: Env, admin: Address, token: Address) -> Result<(), LiquidationError> {
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(LiquidationError::NotInitialized)?;
+        if admin != stored_admin {
+            return Err(LiquidationError::Unauthorized);
+        }
+        admin.require_auth();
+
+        env.storage().instance().set(&DataKey::Token, &token);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        Ok(())
+    }
+
+    pub fn get_token(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Token)
     }
 
     pub fn set_paused(env: Env, admin: Address, paused: bool) -> Result<(), LiquidationError> {
@@ -83,6 +112,9 @@ impl CollateralLiquidationContract {
         admin.require_auth();
 
         env.storage().instance().set(&DataKey::Paused, &paused);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
         Ok(())
     }
 
@@ -140,9 +172,17 @@ impl CollateralLiquidationContract {
         };
 
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Auction(count), &auction);
         env.storage().instance().set(&DataKey::AuctionCount, &count);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Auction(count),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events()
             .publish((symbol_short!("auction"), symbol_short!("started")), count);
@@ -153,7 +193,7 @@ impl CollateralLiquidationContract {
     pub fn get_current_price(env: Env, auction_id: u64) -> Result<i128, LiquidationError> {
         let auction: CollateralAuction = env
             .storage()
-            .instance()
+            .persistent()
             .get(&DataKey::Auction(auction_id))
             .ok_or(LiquidationError::AuctionNotFound)?;
 
@@ -194,7 +234,7 @@ impl CollateralLiquidationContract {
 
         let mut auction: CollateralAuction = env
             .storage()
-            .instance()
+            .persistent()
             .get(&DataKey::Auction(auction_id))
             .ok_or(LiquidationError::AuctionNotFound)?;
 
@@ -206,14 +246,27 @@ impl CollateralLiquidationContract {
         if current_time > auction.start_time + auction.duration_seconds {
             auction.status = AuctionStatus::Expired;
             env.storage()
-                .instance()
+                .persistent()
                 .set(&DataKey::Auction(auction_id), &auction);
+            env.storage().persistent().extend_ttl(
+                &DataKey::Auction(auction_id),
+                INSTANCE_LIFETIME_THRESHOLD,
+                INSTANCE_BUMP_AMOUNT,
+            );
             return Err(LiquidationError::AuctionExpired);
         }
 
         let current_price = Self::get_current_price(env.clone(), auction_id)?;
         if payment_amount < current_price {
             return Err(LiquidationError::InsufficientPayment);
+        }
+
+        if let Some(token) = Self::get_token(env.clone()) {
+            soroban_sdk::token::Client::new(&env, &token).transfer(
+                &buyer,
+                &auction.borrower,
+                &current_price,
+            );
         }
 
         let debt_recovered = current_price.min(auction.debt_amount);
@@ -224,8 +277,16 @@ impl CollateralLiquidationContract {
         auction.final_price = current_price;
 
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Auction(auction_id), &auction);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Auction(auction_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (symbol_short!("auction"), symbol_short!("filled")),
@@ -253,7 +314,7 @@ impl CollateralLiquidationContract {
 
         let mut auction: CollateralAuction = env
             .storage()
-            .instance()
+            .persistent()
             .get(&DataKey::Auction(auction_id))
             .ok_or(LiquidationError::AuctionNotFound)?;
 
@@ -263,8 +324,16 @@ impl CollateralLiquidationContract {
 
         auction.status = AuctionStatus::Cancelled;
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Auction(auction_id), &auction);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Auction(auction_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (symbol_short!("auction"), symbol_short!("cancel")),
@@ -281,7 +350,7 @@ impl CollateralLiquidationContract {
     ) -> Result<(i128, i128), LiquidationError> {
         let auction: CollateralAuction = env
             .storage()
-            .instance()
+            .persistent()
             .get(&DataKey::Auction(auction_id))
             .ok_or(LiquidationError::AuctionNotFound)?;
 
@@ -293,7 +362,7 @@ impl CollateralLiquidationContract {
 
     pub fn get_auction(env: Env, auction_id: u64) -> Result<CollateralAuction, LiquidationError> {
         env.storage()
-            .instance()
+            .persistent()
             .get(&DataKey::Auction(auction_id))
             .ok_or(LiquidationError::AuctionNotFound)
     }

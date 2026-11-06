@@ -19,6 +19,7 @@ pub struct EscrowRecord {
     pub inspector: Option<Address>,
     pub inspection_passed: bool,
     pub disputed_at: u64,
+    pub is_token_funded: bool,
 }
 
 #[contracttype]
@@ -130,15 +131,21 @@ impl AgriculturalEscrowContract {
             inspector: None,
             inspection_passed: false,
             disputed_at: 0,
+            is_token_funded: false,
         };
 
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow(count), &escrow);
         env.storage().instance().set(&DataKey::EscrowCount, &count);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Escrow(count),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         // Emit EscrowCreated event: topics (symbol, escrow_id), data (buyer, seller, amount)
         env.events().publish(
@@ -170,13 +177,21 @@ impl AgriculturalEscrowContract {
                 &env.current_contract_address(),
                 &escrow.amount,
             );
+            escrow.is_token_funded = true;
+        } else {
+            escrow.is_token_funded = false;
         }
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow(escrow_id), &escrow);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Escrow(escrow_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         // Emit EscrowFunded event
         env.events().publish(
@@ -193,11 +208,16 @@ impl AgriculturalEscrowContract {
         }
         escrow.inspector = Some(inspector.clone());
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow(escrow_id), &escrow);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Escrow(escrow_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (Symbol::new(&env, "InspectorAssigned"), escrow_id),
@@ -217,11 +237,16 @@ impl AgriculturalEscrowContract {
         escrow.inspection_passed = true;
         escrow.status = 5; // InspectionApproved
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow(escrow_id), &escrow);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Escrow(escrow_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (Symbol::new(&env, "InspectionApproved"), escrow_id),
@@ -242,19 +267,26 @@ impl AgriculturalEscrowContract {
 
         escrow.status = 2; // Released
         escrow.released_at = env.ledger().timestamp();
-        if let Some(token) = Self::get_token(env.clone()) {
-            soroban_sdk::token::Client::new(&env, &token).transfer(
-                &env.current_contract_address(),
-                &escrow.seller,
-                &escrow.amount,
-            );
+        if escrow.is_token_funded {
+            if let Some(token) = Self::get_token(env.clone()) {
+                soroban_sdk::token::Client::new(&env, &token).transfer(
+                    &env.current_contract_address(),
+                    &escrow.seller,
+                    &escrow.amount,
+                );
+            }
         }
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow(escrow_id), &escrow);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Escrow(escrow_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         // Inter-contract call: Record reputation for seller and buyer if reputation_contract is set
         if let Some(rep_contract) = env
@@ -314,7 +346,7 @@ impl AgriculturalEscrowContract {
             panic!("Escrow not refundable in current status");
         }
 
-        if escrow.status == 1 {
+        if escrow.status == 1 && escrow.is_token_funded {
             if let Some(token) = Self::get_token(env.clone()) {
                 soroban_sdk::token::Client::new(&env, &token).transfer(
                     &env.current_contract_address(),
@@ -325,11 +357,16 @@ impl AgriculturalEscrowContract {
         }
         escrow.status = 3; // Refunded
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow(escrow_id), &escrow);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Escrow(escrow_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         // Emit EscrowRefunded event
         env.events().publish(
@@ -352,11 +389,16 @@ impl AgriculturalEscrowContract {
         escrow.status = 4; // Disputed
         escrow.disputed_at = env.ledger().timestamp();
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow(escrow_id), &escrow);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Escrow(escrow_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (Symbol::new(&env, "EscrowDisputed"), escrow_id),
@@ -380,20 +422,27 @@ impl AgriculturalEscrowContract {
             panic!("Dispute resolution timeout has not elapsed");
         }
 
-        if let Some(token) = Self::get_token(env.clone()) {
-            soroban_sdk::token::Client::new(&env, &token).transfer(
-                &env.current_contract_address(),
-                &escrow.buyer,
-                &escrow.amount,
-            );
+        if escrow.is_token_funded {
+            if let Some(token) = Self::get_token(env.clone()) {
+                soroban_sdk::token::Client::new(&env, &token).transfer(
+                    &env.current_contract_address(),
+                    &escrow.buyer,
+                    &escrow.amount,
+                );
+            }
         }
         escrow.status = 3; // Refunded
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow(escrow_id), &escrow);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Escrow(escrow_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (Symbol::new(&env, "DisputeTimeoutRefunded"), escrow_id),
@@ -414,11 +463,16 @@ impl AgriculturalEscrowContract {
 
         escrow.status = 3; // Refunded/Cancelled
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Escrow(escrow_id), &escrow);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Escrow(escrow_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events()
             .publish((Symbol::new(&env, "EscrowCancelled"), escrow_id), buyer);
@@ -426,7 +480,7 @@ impl AgriculturalEscrowContract {
 
     pub fn get_escrow(env: Env, escrow_id: u32) -> EscrowRecord {
         env.storage()
-            .instance()
+            .persistent()
             .get(&DataKey::Escrow(escrow_id))
             .expect("Escrow not found")
     }

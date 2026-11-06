@@ -34,6 +34,7 @@ pub struct CoopMember {
     pub shares: u64,
     pub staked_amount: i128,
     pub joined_timestamp: u64,
+    pub is_token_staked: bool,
 }
 
 #[contracttype]

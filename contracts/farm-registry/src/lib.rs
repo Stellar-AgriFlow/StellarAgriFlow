@@ -323,10 +323,8 @@ impl FarmRegistryContract {
         duration_days: u32,
     ) -> Result<(), FarmError> {
         issuer.require_auth();
-        if let Some(_admin) = Self::get_admin(env.clone()) {
-            if !Self::is_certifier(env.clone(), issuer.clone()) {
-                return Err(FarmError::NotAuthorized);
-            }
+        if !Self::is_certifier(env.clone(), issuer.clone()) {
+            return Err(FarmError::NotAuthorized);
         }
         if !Self::has_farm(env.clone(), farm_id.clone()) {
             return Err(FarmError::NotFound);

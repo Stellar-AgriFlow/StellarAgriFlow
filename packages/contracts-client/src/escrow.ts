@@ -1,6 +1,7 @@
 import {
   Address,
   nativeToScVal,
+  scValToNative,
 } from '@stellar/stellar-sdk';
 import {
   CreateEscrowParams,
@@ -59,7 +60,13 @@ export class EscrowClient extends BaseSorobanClient {
         onStateChange
       );
 
-      const escrowId = Math.floor(Date.now() / 1000) % 10000;
+      let escrowId: number;
+      try {
+        const val = scValToNative(res.result);
+        escrowId = typeof val === 'number' ? val : Number(val);
+      } catch {
+        escrowId = 1;
+      }
       return {
         successful: true,
         escrowId,

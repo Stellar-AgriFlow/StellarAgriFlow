@@ -22,11 +22,13 @@ pub struct FinancingRequest {
     pub created_at: u64,
     pub funded_at: u64,
     pub repaid_at: u64,
+    pub is_token_funded: bool,
 }
 
 #[contracttype]
 pub enum DataKey {
     Admin,
+    Token,
     FarmRegistryContract,
     ReputationContract,
     PriceFeedContract,
@@ -65,6 +67,26 @@ impl AgriculturalFinanceContract {
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+    }
+
+    pub fn set_token(env: Env, admin: Address, token: Address) {
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Not initialized");
+        stored_admin.require_auth();
+        if admin != stored_admin {
+            panic!("Unauthorized admin");
+        }
+        env.storage().instance().set(&DataKey::Token, &token);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+    }
+
+    pub fn get_token(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Token)
     }
 
     /// Configure external AgriFlow Oracle contracts for automated collateral valuation and weather risk
@@ -182,10 +204,11 @@ impl AgriculturalFinanceContract {
             created_at: env.ledger().timestamp(),
             funded_at: 0,
             repaid_at: 0,
+            is_token_funded: false,
         };
 
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Financing(count), &request);
         env.storage()
             .instance()
@@ -193,6 +216,11 @@ impl AgriculturalFinanceContract {
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Financing(count),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         // Emit FinancingRequested event
         env.events().publish(
@@ -217,16 +245,32 @@ impl AgriculturalFinanceContract {
             panic!("Farmer cannot fund own request");
         }
 
+        if let Some(token) = Self::get_token(env.clone()) {
+            soroban_sdk::token::Client::new(&env, &token).transfer(
+                &funder,
+                &req.farmer,
+                &req.requested_amount,
+            );
+            req.is_token_funded = true;
+        } else {
+            req.is_token_funded = false;
+        }
+
         req.status = 1; // Funded
         req.funder = Some(funder.clone());
         req.funded_at = env.ledger().timestamp();
 
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Financing(request_id), &req);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Financing(request_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         // Award reputation to funder via cross-contract call
         if let Some(rep_contract) = env
@@ -284,11 +328,13 @@ impl AgriculturalFinanceContract {
             req.status = 5; // ForbearanceActive
 
             env.storage()
-                .instance()
+                .persistent()
                 .set(&DataKey::Financing(request_id), &req);
-            env.storage()
-                .instance()
-                .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+            env.storage().persistent().extend_ttl(
+                &DataKey::Financing(request_id),
+                INSTANCE_LIFETIME_THRESHOLD,
+                INSTANCE_BUMP_AMOUNT,
+            );
 
             env.events().publish(
                 (symbol_short!("forbear"), request_id),
@@ -328,11 +374,13 @@ impl AgriculturalFinanceContract {
         req.expected_repayment = new_expected_repayment;
 
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Financing(request_id), &req);
-        env.storage()
-            .instance()
-            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Financing(request_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events().publish(
             (Symbol::new(&env, "LoanRestructured"), request_id),
@@ -378,11 +426,13 @@ impl AgriculturalFinanceContract {
 
         req.status = 3; // Defaulted
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Financing(request_id), &req);
-        env.storage()
-            .instance()
-            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Financing(request_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         // Record reputation penalty via cross-contract call
         if let Some(rep_contract) = env
@@ -417,15 +467,29 @@ impl AgriculturalFinanceContract {
             panic!("Financing request must be funded before repayment");
         }
 
+        if req.is_token_funded {
+            if let Some(token) = Self::get_token(env.clone()) {
+                if let Some(ref funder) = req.funder {
+                    soroban_sdk::token::Client::new(&env, &token).transfer(
+                        &farmer,
+                        funder,
+                        &req.expected_repayment,
+                    );
+                }
+            }
+        }
+
         req.status = 2; // Repaid
         req.repaid_at = env.ledger().timestamp();
 
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Financing(request_id), &req);
-        env.storage()
-            .instance()
-            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Financing(request_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         // Inter-contract call: Award farmer reputation for timely repayment
         if let Some(rep_contract) = env
@@ -463,11 +527,13 @@ impl AgriculturalFinanceContract {
 
         req.status = 4; // Closed
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Financing(request_id), &req);
-        env.storage()
-            .instance()
-            .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Financing(request_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         // Emit FinancingClosed event
         env.events()
@@ -476,7 +542,7 @@ impl AgriculturalFinanceContract {
 
     pub fn get_financing(env: Env, request_id: u32) -> FinancingRequest {
         env.storage()
-            .instance()
+            .persistent()
             .get(&DataKey::Financing(request_id))
             .expect("Financing request not found")
     }

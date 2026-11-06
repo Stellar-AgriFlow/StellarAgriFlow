@@ -1,6 +1,7 @@
 import {
   Address,
   nativeToScVal,
+  scValToNative,
 } from '@stellar/stellar-sdk';
 import {
   ProduceListing,
@@ -65,7 +66,13 @@ export class MarketplaceClient extends BaseSorobanClient {
         onStateChange
       );
 
-      const listingId = Math.floor(Date.now() / 1000) % 10000;
+      let listingId: number;
+      try {
+        const val = scValToNative(res.result);
+        listingId = typeof val === 'number' ? val : Number(val);
+      } catch {
+        listingId = 1;
+      }
       return {
         successful: true,
         listingId,

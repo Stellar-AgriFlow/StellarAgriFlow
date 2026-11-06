@@ -53,7 +53,9 @@ export class IndexerDatabase {
         fs.mkdirSync(dir, { recursive: true });
       }
       this.state.updatedAt = Date.now();
-      fs.writeFileSync(this.dbFilePath, JSON.stringify(this.state, null, 2), 'utf-8');
+      const tmpPath = `${this.dbFilePath}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+      fs.writeFileSync(tmpPath, JSON.stringify(this.state, null, 2), 'utf-8');
+      fs.renameSync(tmpPath, this.dbFilePath);
     } catch {
       // Handle write errors gracefully in read-only environments
     }

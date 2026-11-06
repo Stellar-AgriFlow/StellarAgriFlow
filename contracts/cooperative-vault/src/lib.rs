@@ -75,6 +75,7 @@ impl CooperativeVaultContract {
             shares: initial_shares,
             staked_amount: 0,
             joined_timestamp: env.ledger().timestamp(),
+            is_token_staked: false,
         };
 
         storage::set_member(&env, &member, &new_member);
@@ -105,6 +106,9 @@ impl CooperativeVaultContract {
                 &env.current_contract_address(),
                 &amount,
             );
+            member_data.is_token_staked = true;
+        } else {
+            member_data.is_token_staked = false;
         }
         member_data.staked_amount += amount;
         storage::set_member(&env, &member, &member_data);
@@ -131,12 +135,14 @@ impl CooperativeVaultContract {
         }
 
         member_data.staked_amount -= amount;
-        if let Some(token) = storage::get_token(&env) {
-            soroban_sdk::token::Client::new(&env, &token).transfer(
-                &env.current_contract_address(),
-                &member,
-                &amount,
-            );
+        if member_data.is_token_staked {
+            if let Some(token) = storage::get_token(&env) {
+                soroban_sdk::token::Client::new(&env, &token).transfer(
+                    &env.current_contract_address(),
+                    &member,
+                    &amount,
+                );
+            }
         }
         storage::set_member(&env, &member, &member_data);
         storage::deduct_treasury(&env, amount);

@@ -45,15 +45,14 @@ export abstract class BaseSorobanClient {
     args: xdr.ScVal[],
     signer: (xdr: string) => Promise<string>,
     onStateChange?: (state: string) => void
-  ): Promise<{ txHash: string; status: rpc.Api.GetTransactionStatus }> {
-    const res = await this.invokeContract(
+  ): Promise<{ result: xdr.ScVal; txHash: string; status: rpc.Api.GetTransactionStatus }> {
+    return this.invokeContract(
       functionName,
       args,
       invokerAddress,
       signer,
       onStateChange
     );
-    return { txHash: res.txHash, status: res.status };
   }
 
   protected async invokeContract(

@@ -20,6 +20,10 @@ jobs:
           - agricultural-escrow
           - agricultural-marketplace
           - agricultural-finance
+          - warehouse-receipt
+          - parametric-insurance
+          - cooperative-vault
+          - collateral-liquidation
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

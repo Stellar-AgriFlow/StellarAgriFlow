@@ -143,12 +143,17 @@ impl AgriculturalMarketplaceContract {
         };
 
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Listing(count), &listing);
         env.storage().instance().set(&DataKey::ListingCount, &count);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Listing(count),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         // Emit ListingCreated event
         env.events().publish(
@@ -212,11 +217,16 @@ impl AgriculturalMarketplaceContract {
         listing.status = 1; // Sold
         listing.escrow_id = escrow_id;
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Listing(listing_id), &listing);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Listing(listing_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         // Emit ListingPurchased event
         env.events().publish(
@@ -240,11 +250,16 @@ impl AgriculturalMarketplaceContract {
 
         listing.status = 2; // Cancelled
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Listing(listing_id), &listing);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Listing(listing_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
     }
 
     /// Mark stale or perishable produce listings as expired once shelf life elapses
@@ -263,11 +278,16 @@ impl AgriculturalMarketplaceContract {
 
         listing.status = 3; // Expired
         env.storage()
-            .instance()
+            .persistent()
             .set(&DataKey::Listing(listing_id), &listing);
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Listing(listing_id),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
 
         env.events()
             .publish((Symbol::new(&env, "ListingExpired"), listing_id), caller);
@@ -275,7 +295,7 @@ impl AgriculturalMarketplaceContract {
 
     pub fn get_listing(env: Env, listing_id: u32) -> ProduceListing {
         env.storage()
-            .instance()
+            .persistent()
             .get(&DataKey::Listing(listing_id))
             .expect("Listing not found")
     }

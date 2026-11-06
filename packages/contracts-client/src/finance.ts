@@ -72,7 +72,13 @@ export class FinanceClient extends BaseSorobanClient {
         onStateChange
       );
 
-      const requestId = Math.floor(Date.now() / 1000) % 10000;
+      let requestId: number;
+      try {
+        const val = scValToNative(res.result);
+        requestId = typeof val === 'number' ? val : Number(val);
+      } catch {
+        requestId = 1;
+      }
       return {
         successful: true,
         requestId,
