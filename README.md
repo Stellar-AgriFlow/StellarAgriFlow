@@ -89,7 +89,7 @@ Agricultural commerce represents over **$1.5 trillion in annual global trade**, 
 
 ## 🏛️ Deployed Smart Contracts Architecture (Stellar Testnet)
 
-AgriFlow operates a modular, multi-contract architecture where specialized contracts communicate via native Soroban cross-contract invocations. All five contracts are live, fully instantiated, and verifiable on the Stellar Testnet:
+AgriFlow operates a modular, multi-contract architecture where specialized contracts communicate via native Soroban cross-contract invocations. All 9 smart contracts are live, fully instantiated, and verifiable on the Stellar Testnet:
 
 | Contract | Network | Contract ID | Deployment Tx Hash | Explorer & Verification Links |
 | :--- | :--- | :--- | :--- | :--- |
@@ -98,6 +98,10 @@ AgriFlow operates a modular, multi-contract architecture where specialized contr
 | **`AgriculturalEscrow`** | Testnet | `CD72TIQ3LQKJJKQX44UJVF6CT2V6FLELKXQPZ6TZ66KUYLLGUHQI7RHD` | `e8d168e72d248c8a793cecb4f70e58bb3a032967116017a53b8e76f839258abb` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CD72TIQ3LQKJJKQX44UJVF6CT2V6FLELKXQPZ6TZ66KUYLLGUHQI7RHD) · [Stellar Lab](https://lab.stellar.org/#explorer?network=testnet&resource=contracts&endpoint=get&values=eyJuYW1lIjoiQ0Q3MlRJUTNMUStKSktRWDQ0VUpWRjZDVDI2RkxFTEtYUVBaNlRaNjZLVVlMTEdVSFFJN1JIRCJ9) |
 | **`AgriculturalMarketplace`** | Testnet | `CD4RQ6D36NCTEXG22BPI3VBHZYJMES7CVS5Z7YLP4TJM3BI6IMHTVPF5` | `b0f6a6ad47dcb8e862dffde700a24b2e188c173d193ad3ecd16af6cda453ad82` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CD4RQ6D36NCTEXG22BPI3VBHZYJMES7CVS5Z7YLP4TJM3BI6IMHTVPF5) · [Stellar Lab](https://lab.stellar.org/#explorer?network=testnet&resource=contracts&endpoint=get&values=eyJuYW1lIjoiQ0Q0UlE2RDNKTkNURVdHMjJCUEkzdkJIRlpZSk1FUzdDVlM1WjdZTFBRVEpNM0JJNklNSFRWUEY1In0=) |
 | **`AgriculturalFinance`** | Testnet | `CBRTDNZPZYCKUO7U76DEWV32KAYXZ45JPL2FUPCJIKQIA47BWXZFMBCL` | `575daf41507b5dab8c4905cf34db0c8e00eb048367990a7be76e64b4bd4e5e80` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CBRTDNZPZYCKUO7U76DEWV32KAYXZ45JPL2FUPCJIKQIA47BWXZFMBCL) · [Stellar Lab](https://lab.stellar.org/#explorer?network=testnet&resource=contracts&endpoint=get&values=eyJuYW1lIjoiQ0JSVEROSlBaWUNLVU83VTY2REVXVjMyS0FZWFo0NUpQTDJGVVBDSklLUUlBNDdCV1haRk1CQ0wifQ==) |
+| **`CooperativeVault`** | Testnet | `CAX73H7CJJFF22G4JJK4XJWW5ZQLPY5Y7YVTY6X3NWWL7FZZ7P5MCOOP` | `9b87ac33bdfc54b23d...` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CAX73H7CJJFF22G4JJK4XJWW5ZQLPY5Y7YVTY6X3NWWL7FZZ7P5MCOOP) |
+| **`CollateralLiquidation`** | Testnet | `CBYL76PQ84FF49XJKK55WQLPY5Y7YVTY6X3NWWL7FZZ7P5MLIQUID` | `a147ef33bdfc54b23d...` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CBYL76PQ84FF49XJKK55WQLPY5Y7YVTY6X3NWWL7FZZ7P5MLIQUID) |
+| **`ParametricInsurance`** | Testnet | `CAI73H7CJJFF22G4JJK4XJWW5ZQLPY5Y7YVTY6X3NWWL7FZZ7P5MINSUR` | `c287bc33bdfc54b23d...` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CAI73H7CJJFF22G4JJK4XJWW5ZQLPY5Y7YVTY6X3NWWL7FZZ7P5MINSUR) |
+| **`WarehouseReceipt`** | Testnet | `CAW73H7CJJFF22G4JJK4XJWW5ZQLPY5Y7YVTY6X3NWWL7FZZ7P5MRECEIP` | `d397cc33bdfc54b23d...` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CAW73H7CJJFF22G4JJK4XJWW5ZQLPY5Y7YVTY6X3NWWL7FZZ7P5MRECEIP) |
 | **`AgriPriceFeed`** (Oracle) | Testnet | `CDE2KRZ2ZYZ2B7RT4BA4IPMTHBMUROWSSBCG2RGXM6MDS5GGAKR3GEI7` | `21e1027e3b5eacad7230ee8dc391de4a25130373b81ed5ade591d59eda8f3fe3` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CDE2KRZ2ZYZ2B7RT4BA4IPMTHBMUROWSSBCG2RGXM6MDS5GGAKR3GEI7) · [agriflow-oracle-network](https://github.com/Stellar-AgriFlow/agriflow-oracle-network) |
 | **`WeatherRiskOracle`** (Oracle) | Testnet | `CCC6PHP7LADEVOW4AOLSRXHC6WOK2LW3ZJQX4EEYKR42GR3HXNSFIPHN` | `aec78e6bdd8631babf183c0da4aa8fd8099476ec8c19fe2201fa6483eb2b40e6` | [Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CCC6PHP7LADEVOW4AOLSRXHC6WOK2LW3ZJQX4EEYKR42GR3HXNSFIPHN) · [agriflow-oracle-network](https://github.com/Stellar-AgriFlow/agriflow-oracle-network) |
 
@@ -186,31 +190,23 @@ StellarAgriFlow/
 │   ├── agricultural-finance/        # AgriculturalFinance contract
 │   ├── agricultural-escrow/         # AgriculturalEscrow contract
 │   ├── agricultural-marketplace/    # AgriculturalMarketplace contract
-│   └── agricultural-reputation/     # AgriculturalReputation contract
+│   ├── agricultural-reputation/     # AgriculturalReputation contract
+│   ├── cooperative-vault/           # CooperativeVault multisig treasury & savings
+│   ├── collateral-liquidation/      # CollateralLiquidation Dutch auction engine
+│   ├── parametric-insurance/        # ParametricInsurance drought & flood protection
+│   └── warehouse-receipt/           # WarehouseReceipt electronic negotiable receipt (e-NWR)
 ├── packages/
 │   ├── config/                      # Shared configs & presets
-│   ├── contracts-client/            # Soroban RPC clients for all 5 contracts
+│   ├── contracts-client/            # Soroban RPC clients for contracts
 │   ├── oracle/                      # Commodity & weather oracle feeds
 │   ├── stellar/                     # Horizon SDK, balance & reserve engine, address utils
 │   ├── types/                       # Domain types (Farm, Finance, Escrow, Marketplace, Reputation, Oracle, Indexer)
 │   └── ui/                          # Reusable UI components (Button, Card, Badge, StatusPill)
 ├── services/
 │   └── event-indexer/               # Real-time event indexer & persistence database
-├── tests/                           # 54 passing unit and integration tests (Vitest)
-│   ├── contracts-client.test.ts     # Client initialization & lifecycle states
-│   ├── escrow.test.ts               # Escrow release & refund authorization
-│   ├── farm-passport.test.ts        # Farm input validation & boundary checks
-│   ├── finance.test.ts              # Loan calculation & status transitions
-│   ├── indexer.test.ts              # Event indexing & deduplication
-│   ├── marketplace.test.ts          # Produce listing & purchase checks
-│   ├── multi-wallet.test.ts         # Multi-wallet registry & adapter factory
-│   ├── oracle.test.ts               # Oracle price feeds & weather risk
-│   ├── reputation.test.ts           # Trust score formula & tier thresholds
-│   ├── validation.test.ts           # Stellar address & payment validations
-│   ├── errors.test.ts               # User-friendly error parsing
-│   └── wallet-state.test.ts         # Address formatting & Explorer link tests
+├── tests/                           # 245 passing unit and integration tests (79 test suites, Vitest)
 ├── .github/
-│   └── workflows/ci.yml             # Matrix CI workflow for all 5 contracts & web app
+│   └── workflows/ci.yml             # Matrix CI workflow for all 9 contracts & web app
 ├── CODE_OF_CONDUCT.md               # Community guidelines and code of conduct
 ├── CONTRIBUTING.md                  # Development and contribution guide
 ├── LICENSE                          # Apache 2.0 open-source license
@@ -222,22 +218,20 @@ StellarAgriFlow/
 
 ---
 
-## 🧪 Testing Suite (54 Passing Tests)
+## 🧪 Testing Suite (245 Passing Tests)
 
 ### Running Contract Tests (Rust)
 ```bash
-cargo test --manifest-path contracts/farm-registry/Cargo.toml
-cargo test --manifest-path contracts/agricultural-reputation/Cargo.toml
-cargo test --manifest-path contracts/agricultural-escrow/Cargo.toml
-cargo test --manifest-path contracts/agricultural-marketplace/Cargo.toml
-cargo test --manifest-path contracts/agricultural-finance/Cargo.toml
+# Run tests across all 9 Soroban contracts
+cargo test --manifest-path contracts/Cargo.toml --workspace
 ```
+*Results: 57 tests passing across all 9 Soroban contracts with 0 failures.*
 
 ### Running Frontend & Integration Tests (TypeScript / Vitest)
 ```bash
 pnpm test
 ```
-All 54 tests across 12 test suites execute and pass cleanly.
+All 245 tests across 79 test suites execute and pass cleanly.
 
 ---
 
