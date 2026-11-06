@@ -98,11 +98,13 @@ export class ParametricInsuranceClient extends BaseSorobanClient {
         onStateChange
       );
 
-      let policyId = 0;
+      let policyId: number | undefined;
       try {
-        policyId = scValToNative(result) as number;
+        if (result) {
+          policyId = scValToNative(result) as number;
+        }
       } catch {
-        policyId = Math.floor(Date.now() / 1000) % 10000;
+        // Leave undefined if return value cannot be deserialized
       }
 
       return {

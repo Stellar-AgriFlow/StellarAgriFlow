@@ -80,11 +80,13 @@ export class WarehouseReceiptClient extends BaseSorobanClient {
         onStateChange
       );
 
-      let receiptId = 0;
+      let receiptId: number | undefined;
       try {
-        receiptId = scValToNative(result) as number;
+        if (result) {
+          receiptId = scValToNative(result) as number;
+        }
       } catch {
-        receiptId = Math.floor(Date.now() / 1000) % 10000;
+        // Leave undefined if return value cannot be deserialized
       }
 
       return {

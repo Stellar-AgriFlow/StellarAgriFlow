@@ -278,7 +278,12 @@ impl FarmRegistryContract {
         }
         env.storage()
             .persistent()
-            .set(&DataKey::Certifier(certifier), &true);
+            .set(&DataKey::Certifier(certifier.clone()), &true);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Certifier(certifier),
+            INSTANCE_LIFETIME_THRESHOLD,
+            INSTANCE_BUMP_AMOUNT,
+        );
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_LIFETIME_THRESHOLD, INSTANCE_BUMP_AMOUNT);

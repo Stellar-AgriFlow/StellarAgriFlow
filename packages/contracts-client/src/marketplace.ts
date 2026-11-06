@@ -106,7 +106,14 @@ export class MarketplaceClient extends BaseSorobanClient {
         onStateChange
       );
 
-      const escrowId = Math.floor(Date.now() / 1000) % 10000;
+      let escrowId: number | undefined;
+      try {
+        if (res.result) {
+          escrowId = scValToNative(res.result) as number;
+        }
+      } catch {
+        // Leave undefined if return value cannot be deserialized
+      }
       return {
         successful: true,
         listingId: params.listingId,
