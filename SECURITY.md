@@ -25,7 +25,8 @@ If you discover a security vulnerability or potential threat in AgriFlow:
 **Please DO NOT open a public GitHub issue.**
 
 Instead, please send an encrypted or direct report to our security team:
-- **Email**: [security@agriflow.network](mailto:security@agriflow.network)
+- **Lead Maintainer & Security Contact**: `LaPoshBaby@users.noreply.github.com`
+- **GitHub Security**: Submit a confidential report directly via GitHub Private Vulnerability Reporting under repository Security.
 - **Subject**: `[SECURITY VULNERABILITY] AgriFlow: <Brief Summary>`
 
 ### What to Include in Your Report
