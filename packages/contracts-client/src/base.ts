@@ -12,6 +12,11 @@ import {
   getHorizonServer,
   parseStellarError,
 } from '@agriflow/stellar';
+import {
+  classifySorobanRpcError,
+  SorobanLedgerTimeoutError,
+  SorobanRpcError,
+} from './errors';
 
 export interface BaseClientConfig {
   contractId: string;
@@ -86,7 +91,10 @@ export abstract class BaseSorobanClient {
       const simulation = await this.server.simulateTransaction(initialTx);
 
       if (rpc.Api.isSimulationError(simulation)) {
-        throw new Error(`Contract simulation failed: ${simulation.error}`);
+        throw classifySorobanRpcError(simulation, {
+          contractId: this.contractId,
+          functionName,
+        });
       }
 
       const preparedTx = rpc.assembleTransaction(initialTx, simulation).build();
@@ -98,7 +106,10 @@ export abstract class BaseSorobanClient {
         signedXdr = await signer(preparedXdr);
       } catch (signErr) {
         onStateChange?.('rejected');
-        throw signErr;
+        throw classifySorobanRpcError(signErr, {
+          contractId: this.contractId,
+          functionName,
+        });
       }
 
       onStateChange?.('submitting');
@@ -107,7 +118,10 @@ export abstract class BaseSorobanClient {
 
       if (sendResponse.status === 'ERROR') {
         const errDetails = (sendResponse as { errorResult?: unknown }).errorResult || sendResponse;
-        throw new Error(`Transaction submission failed: ${JSON.stringify(errDetails)}`);
+        throw classifySorobanRpcError(
+          `Transaction submission failed: ${JSON.stringify(errDetails)}`,
+          { contractId: this.contractId, functionName }
+        );
       }
 
       const txHash = sendResponse.hash;
@@ -122,13 +136,22 @@ export abstract class BaseSorobanClient {
         return { result, txHash, status: confirmed.status };
       } else {
         onStateChange?.('failed');
-        throw new Error(`Transaction failed with status: ${confirmed.status}`);
+        throw classifySorobanRpcError(
+          `Transaction failed with status: ${confirmed.status}`,
+          { contractId: this.contractId, functionName }
+        );
       }
     } catch (err: any) {
-      if (!['rejected', 'confirmed'].includes(err.state)) {
+      if (!['rejected', 'confirmed'].includes(err?.state)) {
         onStateChange?.('failed');
       }
-      throw new Error(parseStellarError(err));
+      if (err instanceof SorobanRpcError) {
+        throw err;
+      }
+      throw classifySorobanRpcError(parseStellarError(err), {
+        contractId: this.contractId,
+        functionName,
+      });
     }
   }
 
@@ -155,7 +178,10 @@ export abstract class BaseSorobanClient {
     if (rpc.Api.isSimulationSuccess(simulation) && simulation.result?.retval) {
       return simulation.result.retval;
     }
-    throw new Error(`Simulation failed for ${functionName}`);
+    throw classifySorobanRpcError(
+      rpc.Api.isSimulationError(simulation) ? simulation : `Simulation failed for ${functionName}`,
+      { contractId: this.contractId, functionName }
+    );
   }
 
   protected async pollTransaction(
@@ -170,6 +196,9 @@ export abstract class BaseSorobanClient {
       }
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
-    throw new Error(`Transaction confirmation timed out after ${maxRetries * (intervalMs / 1000)}s`);
+    throw new SorobanLedgerTimeoutError(
+      `Transaction confirmation timed out after ${maxRetries * (intervalMs / 1000)}s`,
+      { contractId: this.contractId }
+    );
   }
 }
