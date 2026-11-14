@@ -8,6 +8,83 @@ export const AGRIFLOW_ORACLE_NETWORK_CONTRACTS = {
   explorerUrl: 'https://stellar.expert/explorer/testnet',
 };
 
+export interface OracleRetryOptions {
+  /** Maximum number of attempts before falling back to cached/mock data (defaults to 3) */
+  maxAttempts?: number;
+  /** Initial backoff delay in milliseconds (defaults to 500 -> 500ms, 1000ms, 2000ms) */
+  baseDelayMs?: number;
+  /** Maximum proportional random jitter added to each backoff delay (defaults to 0.2) */
+  jitterRatio?: number;
+  /** Optional custom sleep function for deterministic unit tests */
+  sleepFn?: (delayMs: number) => Promise<void>;
+  /** Optional custom warning logger (defaults to console.warn) */
+  warnFn?: (message: string, error?: unknown) => void;
+}
+
+export interface AgriculturalOracleServiceOptions {
+  priceFetcher?: () => Promise<CommodityPrice[]>;
+  weatherFetcher?: () => Promise<WeatherRiskIndex[]>;
+  retryOptions?: OracleRetryOptions;
+}
+
+/**
+ * Computes the exponential backoff delay (`500ms`, `1000ms`, `2000ms`, ...) with jitter
+ * for a given 1-based retry attempt index.
+ */
+export function computeBackoffDelayMs(
+  attempt: number,
+  baseDelayMs: number = 500,
+  jitterRatio: number = 0.2,
+  randomFn: () => number = Math.random
+): number {
+  const exponentialDelay = baseDelayMs * Math.pow(2, Math.max(0, attempt - 1));
+  const jitter = Math.round(exponentialDelay * Math.max(0, jitterRatio) * randomFn());
+  return exponentialDelay + jitter;
+}
+
+/**
+ * Wraps an asynchronous oracle feed request with automatic exponential backoff retries
+ * (default max 3 attempts: 500ms, 1000ms, 2000ms + jitter). Emits a warning on each retry
+ * and returns `fallbackFn()` only if all attempts fail.
+ */
+export async function fetchWithExponentialBackoff<T>(
+  feedName: string,
+  fetcher: () => Promise<T>,
+  fallbackFn: () => T | Promise<T>,
+  options: OracleRetryOptions = {}
+): Promise<T> {
+  const maxAttempts = Math.max(1, options.maxAttempts ?? 3);
+  const baseDelayMs = options.baseDelayMs ?? 500;
+  const jitterRatio = options.jitterRatio ?? 0.2;
+  const sleep =
+    options.sleepFn ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  const warn = options.warnFn ?? ((msg: string) => console.warn(msg));
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await fetcher();
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const delayMs = computeBackoffDelayMs(attempt, baseDelayMs, jitterRatio);
+
+      if (attempt < maxAttempts) {
+        warn(
+          `[AgriFlow Oracle] ${feedName} fetch failed on attempt ${attempt}/${maxAttempts} (${errMsg}). Retrying in ${delayMs}ms...`,
+          err
+        );
+        await sleep(delayMs);
+      } else {
+        warn(
+          `[AgriFlow Oracle] ${feedName} fetch exhausted all ${maxAttempts} attempts (${errMsg}). Returning fallback oracle data.`,
+          err
+        );
+      }
+    }
+  }
+
+  return await fallbackFn();
+}
+
 export interface IAgriculturalOracle {
   getCommodityPrices(): Promise<CommodityPrice[]>;
   getRegionalWeather(): Promise<WeatherRiskIndex[]>;
@@ -17,12 +94,21 @@ export interface IAgriculturalOracle {
 
 export class AgriculturalOracleService implements IAgriculturalOracle {
   private xlmUsdRate: number = 0.125; // 1 XLM ~ $0.125 USD on testnet
+  private priceFetcher?: () => Promise<CommodityPrice[]>;
+  private weatherFetcher?: () => Promise<WeatherRiskIndex[]>;
+  private retryOptions: OracleRetryOptions;
+
+  constructor(options: AgriculturalOracleServiceOptions = {}) {
+    this.priceFetcher = options.priceFetcher;
+    this.weatherFetcher = options.weatherFetcher;
+    this.retryOptions = options.retryOptions || {};
+  }
 
   getDeployedOracleContracts() {
     return AGRIFLOW_ORACLE_NETWORK_CONTRACTS;
   }
 
-  async getCommodityPrices(): Promise<CommodityPrice[]> {
+  private getFallbackCommodityPrices(): CommodityPrice[] {
     const now = Date.now();
     return [
       {
@@ -68,7 +154,7 @@ export class AgriculturalOracleService implements IAgriculturalOracle {
     ];
   }
 
-  async getRegionalWeather(): Promise<WeatherRiskIndex[]> {
+  private getFallbackRegionalWeather(): WeatherRiskIndex[] {
     const now = Date.now();
     return [
       {
@@ -117,6 +203,26 @@ export class AgriculturalOracleService implements IAgriculturalOracle {
         lastUpdated: now,
       },
     ];
+  }
+
+  async getCommodityPrices(): Promise<CommodityPrice[]> {
+    const fetcher = this.priceFetcher ?? (async () => this.getFallbackCommodityPrices());
+    return fetchWithExponentialBackoff(
+      'commodity-prices',
+      fetcher,
+      () => this.getFallbackCommodityPrices(),
+      this.retryOptions
+    );
+  }
+
+  async getRegionalWeather(): Promise<WeatherRiskIndex[]> {
+    const fetcher = this.weatherFetcher ?? (async () => this.getFallbackRegionalWeather());
+    return fetchWithExponentialBackoff(
+      'regional-weather',
+      fetcher,
+      () => this.getFallbackRegionalWeather(),
+      this.retryOptions
+    );
   }
 
   async getOracleData(): Promise<OracleFeedData> {
